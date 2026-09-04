@@ -31,8 +31,45 @@
     codeError: false,
     qIndex: 0,
     answers: {},
-    tamAnswers: {}
+    tamAnswers: {},
+    resultDocId: null
   };
+
+  // ---------- Firestore (results storage for the admin panel) ----------
+  // Fails silently if Firebase isn't configured yet (js/firebase-config.js
+  // still has placeholder keys) or the visitor is offline — saving results
+  // is a bonus for the admin panel, it must never block the student's flow.
+  function db() {
+    try {
+      if (typeof firebase === "undefined" || !firebase.apps.length) return null;
+      return firebase.firestore();
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveResultToFirestore(scoresList, careers) {
+    var database = db();
+    if (!database) return;
+    var payload = {
+      code: state.code.trim(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      scores: scoresList.map(function (s) { return { area: s.area, name: s.name, score: s.score, pct: s.pct, top: s.top }; }),
+      careers: careers.map(function (c) { return c.name; })
+    };
+    database.collection("resultados").add(payload)
+      .then(function (docRef) { state.resultDocId = docRef.id; })
+      .catch(function (err) { console.warn("No se pudo guardar el resultado:", err); });
+  }
+
+  function saveTamToFirestore() {
+    var database = db();
+    if (!database || !state.resultDocId) return;
+    database.collection("resultados").doc(state.resultDocId).update({
+      tam: state.tamAnswers,
+      tamCompletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function (err) { console.warn("No se pudo guardar el TAM:", err); });
+  }
 
   var app = document.getElementById("app");
 
@@ -307,6 +344,8 @@
       state.qIndex += 1;
     } else {
       state.screen = "result";
+      var r = computeResults();
+      saveResultToFirestore(r.scoresList, r.careers);
     }
     render();
   }
@@ -326,12 +365,13 @@
   function submitTam() {
     var allAnswered = TAM_QUESTIONS.every(function (t) { return !!state.tamAnswers[t.id]; });
     if (!allAnswered) return;
+    saveTamToFirestore();
     state.screen = "thanks";
     render();
   }
 
   function restart() {
-    state = { screen: "welcome", code: "", codeError: false, qIndex: 0, answers: {}, tamAnswers: {} };
+    state = { screen: "welcome", code: "", codeError: false, qIndex: 0, answers: {}, tamAnswers: {}, resultDocId: null };
     render();
   }
 
