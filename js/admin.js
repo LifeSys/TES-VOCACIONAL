@@ -46,12 +46,24 @@
     document.getElementById("admin-pass").addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
   }
 
+  var LOGIN_ERROR_MESSAGES = {
+    "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase (Authentication → Settings → Authorized domains).",
+    "auth/invalid-api-key": "La clave de Firebase (js/firebase-config.js) es inválida o no corresponde a este proyecto.",
+    "auth/operation-not-allowed": "El método Correo/Contraseña no está habilitado (Authentication → Sign-in method).",
+    "auth/user-not-found": "No existe un usuario con ese correo.",
+    "auth/wrong-password": "Contraseña incorrecta.",
+    "auth/invalid-email": "El correo no tiene un formato válido.",
+    "auth/too-many-requests": "Demasiados intentos fallidos. Espera un momento y vuelve a intentar.",
+    "auth/network-request-failed": "Sin conexión a internet o Firebase no responde."
+  };
+
   function doLogin() {
     var email = document.getElementById("admin-email").value.trim();
     var pass = document.getElementById("admin-pass").value;
     loginError = "";
     auth().signInWithEmailAndPassword(email, pass).catch(function (err) {
-      loginError = "No se pudo iniciar sesión: correo o contraseña incorrectos.";
+      var code = err && err.code;
+      loginError = (LOGIN_ERROR_MESSAGES[code] || (err && err.message) || "Error desconocido al iniciar sesión.") + " (" + code + ")";
       renderLogin();
     });
   }
