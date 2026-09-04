@@ -64,9 +64,42 @@
     }
     return (
       '<div class="top-row">' +
-      '<div class="brand-mark">O</div><div class="brand-name">OrientaIA</div>' +
+      '<img class="brand-mark-img" src="img/logo.svg" width="34" height="34" alt="OrientaIA">' +
+      '<div class="brand-name">OrientaIA</div>' +
       right +
       "</div>"
+    );
+  }
+
+  function renderFooter() {
+    return (
+      '<div class="footer-divider"></div>' +
+      '<footer class="site-footer">' +
+      '<div class="footer-inner">' +
+      '<div class="footer-col footer-brand">' +
+      '<div class="footer-brand-name">Orienta<span>IA</span></div>' +
+      '<p class="footer-tagline">Test de orientación vocacional con inteligencia artificial para estudiantes de secundaria.</p>' +
+      "</div>" +
+      '<div class="footer-col">' +
+      '<div class="footer-col-title">Contacto</div>' +
+      '<div class="footer-line-label">Tel. / WhatsApp</div>' +
+      '<div class="footer-line-value">906 127 991</div>' +
+      '<div class="footer-line-value">942 906 165</div>' +
+      '<div class="footer-line-label" style="margin-top:12px">Email</div>' +
+      '<a class="footer-line-value footer-link" href="mailto:testvocacional.app@gmail.com">testvocacional.app@gmail.com</a>' +
+      "</div>" +
+      '<div class="footer-col">' +
+      '<div class="footer-col-title">Enlaces</div>' +
+      '<button class="footer-link footer-link-btn" data-action="restart">Hacer el test</button>' +
+      '<button class="footer-link footer-link-btn" data-action="show-print">Cuestionario imprimible</button>' +
+      "</div>" +
+      "</div>" +
+      '<div class="footer-bottom">' +
+      '<p>&copy; 2026 <b>OrientaIA</b> &mdash; Héctor Medina y Johann Guevara. Todos los derechos reservados. Queda prohibida la reproducción total o parcial de este sitio, su diseño y sus contenidos sin autorización previa.</p>' +
+      '<p><b>Confidencialidad:</b> este sitio no envía ni guarda tus respuestas en ningún servidor — todo el proceso ocurre en tu navegador y se pierde al cerrar o recargar la página. Tus respuestas se identifican solo con tu código de acceso, nunca con tu nombre. Este test es una herramienta de orientación y no reemplaza una evaluación vocacional profesional certificada.</p>' +
+      "</div>" +
+      "</div>" +
+      "</footer>"
     );
   }
 
@@ -243,19 +276,18 @@
 
   // ---------- render dispatch ----------
   function render() {
-    var html;
     if (state.screen === "print") {
-      html = renderPrint();
-    } else {
-      var body;
-      if (state.screen === "welcome") body = renderWelcome();
-      else if (state.screen === "test") body = renderTest();
-      else if (state.screen === "result") body = renderResult();
-      else if (state.screen === "tam") body = renderTam();
-      else body = renderThanks();
-      html = renderTopRow() + renderProgress() + body;
+      app.innerHTML = '<div class="page">' + renderPrint() + "</div>";
+      return;
     }
-    app.innerHTML = '<div class="page">' + html + "</div>";
+    var body;
+    if (state.screen === "welcome") body = renderWelcome();
+    else if (state.screen === "test") body = renderTest();
+    else if (state.screen === "result") body = renderResult();
+    else if (state.screen === "tam") body = renderTam();
+    else body = renderThanks();
+    var html = renderTopRow() + renderProgress() + body;
+    app.innerHTML = '<div class="page">' + html + "</div>" + renderFooter();
   }
 
   // ---------- actions ----------

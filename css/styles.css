@@ -43,6 +43,7 @@ a:hover { color: var(--mint); }
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 15px; flex-shrink: 0;
 }
+.brand-mark-img { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: block; }
 .brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
 .top-row-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .q-counter { font-size: 12.5px; color: var(--text-muted); font-weight: 600; }
@@ -199,3 +200,51 @@ a:hover { color: var(--mint); }
   .print-view { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
   .print-toolbar { display: none; }
 }
+
+/* Footer */
+.footer-divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--blue), var(--mint));
+  opacity: 0.7;
+}
+.site-footer {
+  background: var(--surface);
+  padding: 40px 24px 28px;
+}
+.footer-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 32px;
+}
+@media (max-width: 640px) { .footer-inner { grid-template-columns: 1fr; } }
+
+.footer-brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+.footer-brand-name span { color: var(--blue); }
+.footer-tagline { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin-top: 8px; max-width: 320px; }
+
+.footer-col-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+.footer-line-label { font-size: 11.5px; color: var(--text-muted); }
+.footer-line-value { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
+a.footer-link { display: block; text-decoration: none; color: var(--text); }
+a.footer-link:hover { color: var(--mint); }
+
+.footer-link-btn {
+  display: block; background: none; border: none; padding: 0; margin-top: 10px;
+  font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; text-align: left;
+}
+.footer-link-btn:first-of-type { margin-top: 0; }
+.footer-link-btn:hover { color: var(--mint); }
+
+.footer-bottom {
+  max-width: 900px;
+  margin: 28px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-bottom p { margin: 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+.footer-bottom b { color: var(--text); }
