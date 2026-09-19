@@ -85,7 +85,8 @@
       "</div>" +
       '<div class="admin-toolbar">' +
       "<span>" + results.length + " resultados (últimos 200)</span>" +
-      '<button class="footer-link-btn" id="admin-refresh" style="margin-top:0;color:var(--mint)">↻ Actualizar</button>' +
+      '<span><button class="footer-link-btn" id="admin-csv" style="margin-top:0;color:var(--mint);display:inline;margin-right:18px">⬇ Exportar CSV</button>' +
+      '<button class="footer-link-btn" id="admin-refresh" style="margin-top:0;color:var(--mint);display:inline">↻ Actualizar</button></span>' +
       "</div>" +
       '<div class="admin-table-wrap">' +
       '<table class="admin-table">' +
@@ -97,6 +98,7 @@
 
     document.getElementById("admin-logout").addEventListener("click", function () { auth().signOut(); });
     document.getElementById("admin-refresh").addEventListener("click", loadResults);
+    document.getElementById("admin-csv").addEventListener("click", downloadCsv);
     root.querySelectorAll("[data-toggle]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id = btn.getAttribute("data-toggle");
@@ -140,7 +142,7 @@
     var doc = new window.jspdf.jsPDF();
     var y = 20;
     doc.setFontSize(16);
-    doc.text("Resultado — Test Vocacional CHASIDE", 14, y); y += 8;
+    doc.text("Resultado - Test Vocacional CHASIDE", 14, y); y += 8;
     doc.setFontSize(10);
     doc.text("Código: " + r.code, 14, y); y += 6;
     doc.text("Fecha: " + fmtDate(r.createdAt), 14, y); y += 10;
@@ -152,13 +154,53 @@
     });
     y += 4;
     doc.setFontSize(12);
-    doc.text("Carreras afines:", 14, y); y += 7;
+    doc.text("Carreras recomendadas" + (r.modelo && r.modelo !== "regla" ? " (modelo " + r.modelo + ")" : "") + ":", 14, y); y += 7;
     doc.setFontSize(10);
-    (r.careers || []).forEach(function (c) {
+    var recs = r.recomendaciones && r.recomendaciones.length ? r.recomendaciones : (r.careers || []).map(function (n) { return { name: n }; });
+    recs.forEach(function (c) {
       if (y > 280) { doc.addPage(); y = 20; }
-      doc.text("- " + c, 16, y); y += 6;
+      var aff = c.afinidad != null ? "  | afinidad " + Math.round(c.afinidad * 100) + "%" : "";
+      doc.text("- " + c.name + aff, 16, y); y += 6;
     });
     doc.save("resultado-" + r.code + ".pdf");
+  }
+
+  // Exporta todos los resultados a CSV (abre en Excel / SPSS). BOM para que Excel respete tildes.
+  function csvCell(v) {
+    if (typeof v === "number" && isFinite(v)) return String(v);   // numeros sin comillas (SPSS/Excel)
+    var s = v == null ? "" : String(v);
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function downloadCsv() {
+    var areas = ["C", "H", "A", "S", "I", "D", "E"];
+    var head = ["fecha", "codigo", "modelo"]
+      .concat(areas.map(function (a) { return "puntaje_" + a; }))
+      .concat(areas.map(function (a) { return "pct_" + a; }))
+      .concat(["area_1", "area_2", "recomendacion_1", "recomendaciones_todas"])
+      .concat(Array.apply(null, Array(14)).map(function (_, i) { return "tam_" + (i + 1); }))
+      .concat(["tam_completado"]);
+    var lines = [head.map(csvCell).join(",")];
+    results.forEach(function (r) {
+      var byArea = {};
+      (r.scores || []).forEach(function (s) { byArea[s.area] = s; });
+      var sorted = (r.scores || []).slice().sort(function (a, b) { return b.score - a.score; });
+      var recs = (r.recomendaciones && r.recomendaciones.length) ? r.recomendaciones.map(function (c) { return c.name; }) : (r.careers || []);
+      var row = [fmtDate(r.createdAt), r.code, r.modelo || "regla"]
+        .concat(areas.map(function (a) { return byArea[a] ? byArea[a].score : ""; }))
+        .concat(areas.map(function (a) { return byArea[a] ? byArea[a].pct : ""; }))
+        .concat([sorted[0] ? sorted[0].name : "", sorted[1] ? sorted[1].name : "", recs[0] || "", recs.join(" | ")])
+        .concat(Array.apply(null, Array(14)).map(function (_, i) { return r.tam ? (r.tam[i + 1] != null ? r.tam[i + 1] : "") : ""; }))
+        .concat([r.tamCompletedAt ? fmtDate(r.tamCompletedAt) : ""]);
+      lines.push(row.map(csvCell).join(","));
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "resultados-chaside-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
 
   function loadResults() {

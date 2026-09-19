@@ -8,10 +8,10 @@ Sitio estático (HTML/CSS/JS puro, sin build step, pensado para GitHub Pages) co
 
 1. **Bienvenida**: aviso de privacidad breve + código de acceso (sin nombre, sin datos personales — el código lo asigna la institución).
 2. **Test CHASIDE**: 98 preguntas Sí/No, una por pantalla, con barra de progreso y opción de volver atrás.
-3. **Resultado**: calcula las 2 áreas con mayor puntaje del estudiante y muestra las carreras afines a esas áreas. Se guarda en Firestore si está configurado.
+3. **Resultado**: calcula el puntaje de las 7 áreas CHASIDE y un **modelo de Machine Learning (k-NN)** ordena las 8 carreras más afines a ese perfil, con su afinidad relativa. Se guarda en Firestore si está configurado.
 4. **Cuestionario TAM**: 14 ítems (escala 1-5) para medir la percepción de utilidad del sistema. Se agrega al mismo registro guardado en el paso anterior.
 5. **Cuestionario en blanco imprimible**: versión en papel de las 98 preguntas, por si se necesita aplicar sin dispositivo.
-6. **Panel administrativo** (`admin.html`, sin enlace visible desde el sitio — solo por URL directa): login con correo/contraseña, tabla de resultados registrados con las áreas de cada código, y descarga de PDF individual por resultado.
+6. **Panel administrativo** (`admin.html`, sin enlace visible desde el sitio — solo por URL directa): login con correo/contraseña, tabla de resultados registrados con las áreas de cada código, descarga de PDF individual por resultado y **exportación a CSV** (Excel/SPSS).
 
 ## Estructura
 
@@ -21,6 +21,9 @@ admin.html             panel administrativo (privado, sin enlace visible)
 css/styles.css          estilos (tema oscuro)
 js/data.js              banco de 98 ítems CHASIDE + catálogo de carreras (generado y verificado)
 js/app.js               lógica del test (sin frameworks)
+js/ml-model.js          modelo k-NN ya entrenado (generado por ml/train_model.py, no editar a mano)
+js/ml-engine.js         inferencia del modelo en el navegador
+ml/                     entrenamiento, validación y reentrenamiento del modelo (ver ml/README.md)
 js/admin.js             lógica del panel admin (login, tabla, PDF)
 js/firebase-config.js   claves de tu proyecto Firebase (hay que completarlas, ver abajo)
 firestore.rules          reglas de seguridad de la base de datos

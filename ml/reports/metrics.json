@@ -1,0 +1,42 @@
+{
+  "model": "knn-v1",
+  "algorithm": "k-Nearest Neighbors (aprendizaje supervisado), votacion ponderada",
+  "k": 60,
+  "weights": "distance",
+  "n_total": 2350,
+  "n_train": 1880,
+  "n_test": 470,
+  "n_careers": 47,
+  "seed": 2026,
+  "test_hit_at": {
+    "1": 0.4511,
+    "3": 0.8128,
+    "5": 0.9149,
+    "8": 0.9894,
+    "14": 0.9979
+  },
+  "test_area_accuracy_top1": 0.8745,
+  "test_mrr": 0.6474,
+  "sklearn_crosscheck_top1": 0.4383,
+  "baseline_rule_based": {
+    "hit_rate": 0.983,
+    "avg_list_size": 13.75
+  },
+  "ml_hit_same_list_size": 0.9979,
+  "baseline_random_hit8": 0.1702,
+  "baseline_random_same_size": 0.2979,
+  "cv_best": {
+    "weights": "distance",
+    "k": 60.0,
+    "top1_mean": 0.4505,
+    "top1_std": 0.0274,
+    "top3_mean": 0.8096,
+    "top3_std": 0.0149,
+    "top5_mean": 0.9261,
+    "top5_std": 0.0086,
+    "top8_mean": 0.9798,
+    "top8_std": 0.0085,
+    "top14_mean": 0.9952,
+    "top14_std": 0.0031
+  }
+}

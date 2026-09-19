@@ -48,14 +48,19 @@
     }
   }
 
-  function saveResultToFirestore(scoresList, careers) {
+  function saveResultToFirestore(scoresList, careers, engine) {
     var database = db();
     if (!database) return;
     var payload = {
       code: state.code.trim(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       scores: scoresList.map(function (s) { return { area: s.area, name: s.name, score: s.score, pct: s.pct, top: s.top }; }),
-      careers: careers.map(function (c) { return c.name; })
+      careers: careers.map(function (c) { return c.name; }),
+      // trazabilidad del modelo: que version recomendo y con que afinidad relativa
+      modelo: engine,
+      recomendaciones: careers.map(function (c) {
+        return { name: c.name, area: c.area, afinidad: c.affinity == null ? null : Math.round(c.affinity * 1000) / 1000 };
+      })
     };
     database.collection("resultados").add(payload)
       .then(function (docRef) { state.resultDocId = docRef.id; })
@@ -216,10 +221,21 @@
     });
     scoresList.sort(function (a, b) { return b.score - a.score; });
 
-    var careers = CAREERS.filter(function (c) { return topTwo.indexOf(c.area) !== -1; });
+    // Recomendacion de carreras: modelo k-NN entrenado (js/ml-model.js + js/ml-engine.js).
+    // Entrada = los 7 puntajes CHASIDE (0..14) en el orden del modelo. Si por algun motivo
+    // el modelo no cargo, se usa la regla anterior (carreras de las 2 areas con mayor puntaje).
+    var careers, engine = "regla";
+    if (typeof ChasideML !== "undefined" && ChasideML.model.areas.join() === AREA_ORDER.join()) {
+      var vector = AREA_ORDER.map(function (a) { return totals[a]; });
+      careers = ChasideML.recommend(vector);
+      engine = ChasideML.model.version;
+    } else {
+      careers = CAREERS.filter(function (c) { return topTwo.indexOf(c.area) !== -1; })
+        .map(function (c) { return { name: c.name, area: c.area, affinity: null }; });
+    }
     var topAreaPills = topTwo.map(function (a) { return AREA_NAMES[a]; });
 
-    return { scoresList: scoresList, careers: careers, topAreaPills: topAreaPills };
+    return { scoresList: scoresList, careers: careers, topAreaPills: topAreaPills, engine: engine };
   }
 
   function renderResult() {
@@ -234,8 +250,14 @@
       );
     }).join("");
     var careers = r.careers.map(function (c) {
-      return '<div class="career-card"><span class="career-name">' + esc(c.name) + '</span><span class="career-area">' + esc(AREA_NAMES[c.area]) + "</span></div>";
+      var aff = c.affinity == null ? "" :
+        '<div class="affinity"><div class="affinity-track"><div class="affinity-fill" style="width:' + Math.round(c.affinity * 100) + '%"></div></div>' +
+        '<span class="affinity-label">' + Math.round(c.affinity * 100) + "%</span></div>";
+      return '<div class="career-card"><div class="career-main"><span class="career-name">' + esc(c.name) + "</span>" + aff + "</div>" +
+        '<span class="career-area">' + esc(AREA_NAMES[c.area]) + "</span></div>";
     }).join("");
+    var careersNote = r.engine === "regla" ? "" :
+      '<p class="section-note">Ordenadas por un modelo de aprendizaje automático (k-NN) a partir de tus 7 puntajes. La barra indica la afinidad relativa: la primera carrera = 100%.</p>';
 
     return (
       '<div class="card">' +
@@ -244,7 +266,7 @@
       '<div class="top-areas-row">' + pills + "</div>" +
       '<div class="result-grid">' +
       '<div><h2 class="section-title">Tus áreas de interés</h2><div class="scores-block">' + scores + "</div></div>" +
-      '<div><h2 class="section-title">Carreras afines a tu perfil</h2><div class="career-list">' + careers + "</div></div>" +
+      '<div><h2 class="section-title">Carreras recomendadas para tu perfil</h2>' + careersNote + '<div class="career-list">' + careers + "</div></div>" +
       "</div>" +
       '<div class="disclaimer-box"><p>Este resultado es una sugerencia orientativa. Coméntalo con tu psicólogo o tutor escolar para tomar una decisión informada.</p></div>' +
       '<button class="btn-primary" style="margin-top:26px" data-action="continue-tam">Continuar ' + icon("arrow") + "</button>" +
@@ -345,7 +367,7 @@
     } else {
       state.screen = "result";
       var r = computeResults();
-      saveResultToFirestore(r.scoresList, r.careers);
+      saveResultToFirestore(r.scoresList, r.careers, r.engine);
     }
     render();
   }

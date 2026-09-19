@@ -1,0 +1,48 @@
+carrera,area,n_prueba,top1,top3,top8
+Marketing,C,10,0.3,0.5,0.9
+Derecho,H,10,0.2,0.6,0.9
+Obstetricia,S,10,0.1,0.6,0.9
+Ciencias Militares,D,10,0.3,0.8,0.9
+Química,E,10,0.3,0.8,0.9
+Economía,C,10,0.6,1.0,1.0
+Negocios Internacionales,C,10,0.1,0.9,1.0
+Contabilidad,C,10,0.6,0.7,1.0
+Educación,H,10,0.4,0.7,1.0
+Psicología,H,10,0.3,0.7,1.0
+Trabajo Social,H,10,0.4,0.6,1.0
+Ciencias de la Comunicación,H,10,0.6,0.9,1.0
+Sociología,H,10,0.7,1.0,1.0
+Ciencias Políticas,H,10,0.2,0.6,1.0
+Administración Bancaria y Financiera,C,10,0.6,1.0,1.0
+Administración de Empresas,C,10,0.2,0.9,1.0
+Arquitectura,A,10,0.7,1.0,1.0
+Diseño de Modas,A,10,0.0,0.6,1.0
+Música,A,10,0.7,0.9,1.0
+Artes Escénicas,A,10,0.6,0.8,1.0
+Comunicación Audiovisual,A,10,0.5,0.9,1.0
+Publicidad,A,10,0.6,0.9,1.0
+Medicina Humana,S,10,0.2,0.8,1.0
+Enfermería,S,10,0.8,0.9,1.0
+Odontología,S,10,0.8,0.8,1.0
+Tecnología Médica,S,10,0.5,0.6,1.0
+Nutrición y Dietética,S,10,0.4,0.9,1.0
+Terapia Física y Rehabilitación,S,10,0.7,0.9,1.0
+Ingeniería de Sistemas,I,10,0.4,0.8,1.0
+Ingeniería Civil,I,10,0.0,0.6,1.0
+Diseño Gráfico,A,10,1.0,1.0,1.0
+Recursos Humanos,C,10,0.7,1.0,1.0
+Ingeniería Electrónica,I,10,0.5,0.6,1.0
+Ingeniería Industrial,I,10,0.3,0.6,1.0
+Ingeniería Mecatrónica,I,10,0.6,0.9,1.0
+Ciencias de la Computación,I,10,0.3,0.8,1.0
+Ciencias Navales,D,10,0.1,1.0,1.0
+Ciencias Aeronáuticas,D,10,0.5,0.9,1.0
+Ciencias Policiales,D,10,0.8,1.0,1.0
+Ciencia de Datos,I,10,0.2,0.6,1.0
+Seguridad y Gestión de Riesgos,D,10,0.9,1.0,1.0
+Matemática,E,10,0.2,0.8,1.0
+Física,E,10,0.4,0.9,1.0
+Biología,E,10,0.3,1.0,1.0
+Agronomía,E,10,0.4,0.8,1.0
+Ingeniería Ambiental,E,10,0.9,1.0,1.0
+Ingeniería Zootecnista,E,10,0.3,0.6,1.0
