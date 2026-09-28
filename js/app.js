@@ -110,7 +110,7 @@
       "</div>" +
       '<div class="footer-bottom">' +
       '<p>&copy; 2026 <b>OrientaIA</b> &mdash; Héctor Medina y Johann Guevara. Todos los derechos reservados. Queda prohibida la reproducción total o parcial de este sitio, su diseño y sus contenidos sin autorización previa.</p>' +
-      '<p><b>Confidencialidad:</b> este sitio no envía ni guarda tus respuestas en ningún servidor — todo el proceso ocurre en tu navegador y se pierde al cerrar o recargar la página. Tus respuestas se identifican solo con tu código de acceso, nunca con tu nombre. Este test es una herramienta de orientación y no reemplaza una evaluación vocacional profesional certificada.</p>' +
+      '<p><b>Confidencialidad:</b> al terminar el test, tus resultados (puntaje por área y carreras recomendadas) se guardan en una base de datos protegida para que el equipo responsable de tu institución pueda acompañarte. Se identifican solo con tu código de acceso, nunca con tu nombre, y solo los puede ver personal autorizado. Este test es una herramienta de orientación y no reemplaza una evaluación vocacional profesional certificada.</p>' +
       "</div>" +
       "</div>" +
       "</footer>"
