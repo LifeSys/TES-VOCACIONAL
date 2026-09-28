@@ -116,13 +116,6 @@ a:hover { color: var(--mint); }
   color: var(--text); font-family: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
 }
 
-.print-link {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-top: 18px; font-size: 13.5px; font-weight: 600; color: var(--mint);
-  text-decoration: none; cursor: pointer; background: none; border: none; width: 100%; font-family: inherit;
-}
-.print-link svg { flex-shrink: 0; }
-
 /* Test screen */
 .q-eyebrow { text-align: left; font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
 .q-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 999px; }
@@ -170,22 +163,6 @@ a:hover { color: var(--mint); }
 .thanks-icon { width: 72px; height: 72px; border-radius: 999px; background: var(--mint-soft); color: var(--mint); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
 .thanks-center { text-align: center; }
 
-/* Printable blank questionnaire (screen view + print) */
-.print-view { background: #fff; color: #111; border-radius: 0; }
-.print-view .print-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.print-view h1 { font-size: 20px; margin: 0 0 4px; }
-.print-view p.print-sub { font-size: 12px; color: #555; margin: 0 0 20px; }
-.print-item { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid #ddd; font-size: 12.5px; }
-.print-item span.n { color: #888; margin-right: 6px; }
-.print-checks { display: flex; gap: 14px; flex-shrink: 0; font-size: 11px; color: #555; }
-
-@media print {
-  body * { visibility: hidden; }
-  .print-view, .print-view * { visibility: visible; }
-  .print-view { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
-  .print-toolbar { display: none; }
-}
-
 /* Footer */
 .footer-divider {
   height: 2px;
@@ -194,27 +171,8 @@ a:hover { color: var(--mint); }
 }
 .site-footer {
   background: var(--surface);
-  padding: 40px 24px 28px;
+  padding: 24px 24px 28px;
 }
-.footer-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 32px;
-}
-@media (max-width: 640px) { .footer-inner { grid-template-columns: 1fr; } }
-
-.footer-brand-name { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
-.footer-brand-name span { color: var(--blue); }
-.footer-tagline { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin-top: 8px; max-width: 320px; }
-
-.footer-col-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
-.footer-line-label { font-size: 11.5px; color: var(--text-muted); }
-.footer-line-value { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; }
-a.footer-link { display: block; text-decoration: none; color: var(--text); }
-a.footer-link:hover { color: var(--mint); }
-
 .footer-link-btn {
   display: block; background: none; border: none; padding: 0; margin-top: 10px;
   font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; text-align: left;
@@ -224,9 +182,7 @@ a.footer-link:hover { color: var(--mint); }
 
 .footer-bottom {
   max-width: 900px;
-  margin: 28px auto 0;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 10px;

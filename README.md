@@ -10,8 +10,7 @@ Sitio estático (HTML/CSS/JS puro, sin build step, pensado para GitHub Pages) co
 2. **Test CHASIDE**: 98 preguntas Sí/No, una por pantalla, con barra de progreso y opción de volver atrás.
 3. **Resultado**: calcula el puntaje de las 7 áreas CHASIDE y un **modelo de Machine Learning (k-NN)** ordena las 8 carreras más afines a ese perfil, con su afinidad relativa. Se guarda en Firestore si está configurado.
 4. **Cierre con PDF**: pantalla de agradecimiento con el botón **Descargar mis resultados (PDF)** (código, fecha, puntaje de las 7 áreas y carreras recomendadas) para entregarlo a la institución.
-5. **Cuestionario en blanco imprimible**: versión en papel de las 98 preguntas, por si se necesita aplicar sin dispositivo.
-6. **Panel administrativo** (`admin.html`, sin enlace visible desde el sitio — solo por URL directa): login con correo/contraseña, tabla de resultados registrados con las áreas de cada código, descarga de PDF individual por resultado y **exportación a CSV** (Excel/SPSS).
+5. **Panel administrativo** (`admin.html`, sin enlace visible desde el sitio — solo por URL directa): login con correo/contraseña, tabla de resultados registrados con las áreas de cada código, descarga de PDF individual por resultado y **exportación a CSV** (Excel/SPSS).
 
 ## Estructura
 

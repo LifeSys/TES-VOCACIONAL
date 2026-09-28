@@ -8,7 +8,7 @@
   var MAX_PER_AREA = 14; // 10 interes + 4 aptitud
 
   var state = {
-    screen: "welcome", // welcome | test | result | thanks | print
+    screen: "welcome", // welcome | test | result | thanks
     code: "",
     codeError: false,
     qIndex: 0,
@@ -56,7 +56,6 @@
       case "x": return '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
       case "back": return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
       case "arrow": return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
-      case "printer": return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
       case "download": return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
       case "thanks": return '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="8 12.5 10.8 15.3 16 9.3"></polyline></svg>';
       default: return "";
@@ -67,7 +66,7 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  // ---------- header shared across app screens (not shown on print view) ----------
+  // ---------- header shared across app screens ----------
   function renderTopRow() {
     var right = "";
     if (state.screen === "test") {
@@ -89,29 +88,9 @@
     return (
       '<div class="footer-divider"></div>' +
       '<footer class="site-footer">' +
-      '<div class="footer-inner">' +
-      '<div class="footer-col footer-brand">' +
-      '<div class="footer-brand-name">Orienta<span>IA</span></div>' +
-      '<p class="footer-tagline">Test de orientación vocacional con inteligencia artificial para estudiantes de secundaria.</p>' +
-      "</div>" +
-      '<div class="footer-col">' +
-      '<div class="footer-col-title">Contacto</div>' +
-      '<div class="footer-line-label">Tel. / WhatsApp</div>' +
-      '<div class="footer-line-value">906 127 991</div>' +
-      '<div class="footer-line-value">942 906 165</div>' +
-      '<div class="footer-line-label" style="margin-top:12px">Email</div>' +
-      '<a class="footer-line-value footer-link" href="mailto:testvocacional.app@gmail.com">testvocacional.app@gmail.com</a>' +
-      "</div>" +
-      '<div class="footer-col">' +
-      '<div class="footer-col-title">Enlaces</div>' +
-      '<button class="footer-link footer-link-btn" data-action="restart">Hacer el test</button>' +
-      '<button class="footer-link footer-link-btn" data-action="show-print">Cuestionario imprimible</button>' +
-      "</div>" +
-      "</div>" +
       '<div class="footer-bottom">' +
       '<p>&copy; 2026 <b>OrientaIA</b> &mdash; Héctor Medina y Johann Guevara. Todos los derechos reservados. Queda prohibida la reproducción total o parcial de este sitio, su diseño y sus contenidos sin autorización previa.</p>' +
       '<p><b>Confidencialidad:</b> al terminar el test, tus resultados (puntaje por área y carreras recomendadas) se guardan en una base de datos protegida para que el equipo responsable de tu institución pueda acompañarte. Se identifican solo con tu código de acceso, nunca con tu nombre, y solo los puede ver personal autorizado. Este test es una herramienta de orientación y no reemplaza una evaluación vocacional profesional certificada.</p>' +
-      "</div>" +
       "</div>" +
       "</footer>"
     );
@@ -149,7 +128,6 @@
       '<div class="bullet-item"><span class="bullet-dot"></span><span><b>Es orientación, no destino:</b> el resultado te da pistas para investigar, no una sentencia.</span></div>' +
       "</div>" +
       '<button class="btn-primary" data-action="start">Comenzar el test ' + icon("arrow") + "</button>" +
-      '<button class="print-link" data-action="show-print">' + icon("printer") + " Imprimir cuestionario en blanco (PDF)</button>" +
       "</div>"
     );
   }
@@ -374,32 +352,8 @@
     doc.save("resultado-chaside-" + safeCode + ".pdf");
   }
 
-  function renderPrint() {
-    var rows = QUESTIONS.slice().sort(function (a, b) { return a.id - b.id; }).map(function (q) {
-      return (
-        '<div class="print-item"><span><span class="n">' + q.id + ".</span>" + esc(q.text) + "</span>" +
-        '<span class="print-checks"><span>Sí ☐</span><span>No ☐</span></span></div>'
-      );
-    }).join("");
-    return (
-      '<div class="card print-view">' +
-      '<div class="print-toolbar">' +
-      '<button class="btn-secondary" style="width:auto;padding:0 18px" data-action="hide-print">' + icon("back") + " Volver</button>" +
-      '<button class="btn-primary" style="width:auto;padding:0 18px" data-action="trigger-print">' + icon("printer") + " Imprimir / Guardar PDF</button>" +
-      "</div>" +
-      "<h1>Test de Orientación Vocacional CHASIDE</h1>" +
-      '<p class="print-sub">Cuestionario en blanco · 98 preguntas · Responde Sí o No marcando la casilla correspondiente</p>' +
-      rows +
-      "</div>"
-    );
-  }
-
   // ---------- render dispatch ----------
   function render() {
-    if (state.screen === "print") {
-      app.innerHTML = '<div class="page">' + renderPrint() + "</div>";
-      return;
-    }
     var body;
     if (state.screen === "welcome") body = renderWelcome();
     else if (state.screen === "test") body = renderTest();
@@ -461,9 +415,6 @@
     else if (action === "finish") finish();
     else if (action === "download-pdf") downloadResultsPdf();
     else if (action === "restart") restart();
-    else if (action === "show-print") { state.screen = "print"; render(); }
-    else if (action === "hide-print") { state.screen = "welcome"; render(); }
-    else if (action === "trigger-print") window.print();
   });
 
   app.addEventListener("input", function (e) {
