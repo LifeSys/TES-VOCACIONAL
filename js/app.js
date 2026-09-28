@@ -1,24 +1,6 @@
 (function () {
   "use strict";
 
-  var LIKERT_LABELS = ["Totalmente en desacuerdo", "En desacuerdo", "Neutral", "De acuerdo", "Totalmente de acuerdo"];
-  var TAM_QUESTIONS = [
-    { id: 1, section: "Utilidad percibida", text: "El sistema me ayudó a conocer mejor mis intereses vocacionales." },
-    { id: 2, section: null, text: "Las recomendaciones que me dio el sistema son útiles para elegir una carrera." },
-    { id: 3, section: null, text: "Usar el sistema mejoró mi comprensión sobre las carreras que podrían ser adecuadas para mí." },
-    { id: 4, section: null, text: "En general, el sistema es útil para el proceso de orientación vocacional." },
-    { id: 5, section: "Facilidad de uso", text: "Fue fácil aprender a usar el sistema." },
-    { id: 6, section: null, text: "Pude completar el test sin necesitar ayuda de otra persona." },
-    { id: 7, section: null, text: "Las instrucciones y preguntas del sistema fueron claras y fáciles de entender." },
-    { id: 8, section: null, text: "Navegar y responder en el sistema fue sencillo." },
-    { id: 9, section: "Actitud hacia el uso", text: "Me pareció una buena idea usar este tipo de sistema para orientación vocacional." },
-    { id: 10, section: null, text: "Disfruté usar el sistema." },
-    { id: 11, section: null, text: "Me sentí cómodo/a usando el sistema." },
-    { id: 12, section: "Intención de uso futuro", text: "Si pudiera, volvería a usar este sistema en el futuro." },
-    { id: 13, section: null, text: "Recomendaría este sistema a otros estudiantes." },
-    { id: 14, section: null, text: "Confío en los resultados que me mostró el sistema." }
-  ];
-
   var QUESTIONS = CHASIDE_DATA.questions;
   var AREA_ORDER = CHASIDE_DATA.areaOrder;
   var AREA_NAMES = CHASIDE_DATA.areaNames;
@@ -26,13 +8,12 @@
   var MAX_PER_AREA = 14; // 10 interes + 4 aptitud
 
   var state = {
-    screen: "welcome", // welcome | test | result | tam | thanks | print
+    screen: "welcome", // welcome | test | result | thanks | print
     code: "",
     codeError: false,
     qIndex: 0,
     answers: {},
-    tamAnswers: {},
-    resultDocId: null
+    finishedAt: null
   };
 
   // ---------- Firestore (results storage for the admin panel) ----------
@@ -63,17 +44,7 @@
       })
     };
     database.collection("resultados").add(payload)
-      .then(function (docRef) { state.resultDocId = docRef.id; })
       .catch(function (err) { console.warn("No se pudo guardar el resultado:", err); });
-  }
-
-  function saveTamToFirestore() {
-    var database = db();
-    if (!database || !state.resultDocId) return;
-    database.collection("resultados").doc(state.resultDocId).update({
-      tam: state.tamAnswers,
-      tamCompletedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(function (err) { console.warn("No se pudo guardar el TAM:", err); });
   }
 
   var app = document.getElementById("app");
@@ -86,6 +57,7 @@
       case "back": return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
       case "arrow": return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
       case "printer": return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>';
+      case "download": return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
       case "thanks": return '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="8 12.5 10.8 15.3 16 9.3"></polyline></svg>';
       default: return "";
     }
@@ -269,35 +241,7 @@
       '<div><h2 class="section-title">Carreras recomendadas para tu perfil</h2>' + careersNote + '<div class="career-list">' + careers + "</div></div>" +
       "</div>" +
       '<div class="disclaimer-box"><p>Este resultado es una sugerencia orientativa. Coméntalo con tu psicólogo o tutor escolar para tomar una decisión informada.</p></div>' +
-      '<button class="btn-primary" style="margin-top:26px" data-action="continue-tam">Continuar ' + icon("arrow") + "</button>" +
-      "</div>"
-    );
-  }
-
-  function renderTam() {
-    var answeredCount = TAM_QUESTIONS.filter(function (t) { return !!state.tamAnswers[t.id]; }).length;
-    var allAnswered = answeredCount === TAM_QUESTIONS.length;
-
-    var items = TAM_QUESTIONS.map(function (t) {
-      var section = t.section ? '<div class="tam-section-title">' + esc(t.section) + "</div>" : "";
-      var pills = LIKERT_LABELS.map(function (label, idx) {
-        var val = idx + 1;
-        var selected = state.tamAnswers[t.id] === val;
-        return '<button class="likert-pill' + (selected ? " likert-pill-selected" : "") + '" data-action="tam-answer" data-qid="' + t.id + '" data-value="' + val + '" aria-pressed="' + (selected ? "true" : "false") + '">' + val + "</button>";
-      }).join("");
-      return section + '<div class="tam-item"><p class="tam-text">' + esc(t.text) + '</p><div class="likert-row-compact">' + pills + "</div></div>";
-    }).join("");
-
-    var note = allAnswered ? "" : '<p class="tam-progress-note">Has respondido ' + answeredCount + " de " + TAM_QUESTIONS.length + ". Completa todas las afirmaciones para continuar.</p>";
-
-    return (
-      '<div class="card">' +
-      '<h1 class="title">Cuéntanos qué te pareció</h1>' +
-      '<p class="subtitle">Tus respuestas nos ayudan a mejorar el sistema.</p>' +
-      '<p class="tam-legend">Marca del 1 (totalmente en desacuerdo) al 5 (totalmente de acuerdo).</p>' +
-      '<div class="tam-list">' + items + "</div>" +
-      '<button class="btn-primary" style="margin-top:26px" data-action="submit-tam"' + (allAnswered ? "" : " disabled") + ">Enviar</button>" +
-      note +
+      '<button class="btn-primary" style="margin-top:26px" data-action="finish">Finalizar ' + icon("arrow") + "</button>" +
       "</div>"
     );
   }
@@ -307,10 +251,127 @@
       '<div class="card thanks-center">' +
       '<div class="thanks-icon">' + icon("thanks") + "</div>" +
       '<h1 class="title">¡Gracias por participar!</h1>' +
-      '<p class="subtitle">Ya puedes cerrar esta ventana. Tu psicólogo escolar recibirá tus resultados para acompañarte en tu decisión.</p>' +
-      '<button class="btn-secondary" style="margin-top:22px" data-action="restart">Volver a probar la demo</button>' +
+      '<p class="subtitle">Descarga el PDF con tus resultados y entrégalo a tu institución o a tu psicólogo escolar para que te acompañe en tu decisión.</p>' +
+      '<button class="btn-primary" style="margin-top:22px" data-action="download-pdf">' + icon("download") + " Descargar mis resultados (PDF)</button>" +
+      '<button class="btn-secondary" style="margin-top:12px" data-action="restart">Volver al inicio</button>' +
       "</div>"
     );
+  }
+
+  // ---------- PDF de resultados (lo que el estudiante entrega a su institucion) ----------
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+  function fmtDateTime(d) {
+    return pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1) + "/" + d.getFullYear() + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+
+  function downloadResultsPdf() {
+    if (!window.jspdf) {
+      alert("No se pudo generar el PDF (revisa tu conexión a internet y vuelve a intentarlo).");
+      return;
+    }
+    var r = computeResults();
+    var when = state.finishedAt || new Date();
+    var code = state.code.trim();
+    var doc = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+    var W = 210, M = 16, y;
+
+    var INK = [17, 24, 39], MUTED = [100, 110, 130], LINE = [225, 229, 236];
+    var MINT = [16, 163, 116], BLUE = [77, 142, 240], TRACK = [236, 240, 245], NAVY = [18, 26, 48];
+
+    function text(str, x, yy, opts) { doc.text(str, x, yy, opts || {}); }
+    function ink(c) { doc.setTextColor(c[0], c[1], c[2]); }
+    function ensureSpace(h) { if (y + h > 280) { doc.addPage(); y = 20; } }
+    function sectionTitle(t) {
+      ensureSpace(14);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12); ink(INK);
+      text(t, M, y);
+      doc.setDrawColor(LINE[0], LINE[1], LINE[2]); doc.setLineWidth(0.3);
+      doc.line(M, y + 2.5, W - M, y + 2.5);
+      y += 9;
+    }
+    function bar(x, yy, w, frac, color) {
+      doc.setFillColor(TRACK[0], TRACK[1], TRACK[2]); doc.roundedRect(x, yy, w, 3, 1.5, 1.5, "F");
+      if (frac > 0) { doc.setFillColor(color[0], color[1], color[2]); doc.roundedRect(x, yy, Math.max(3, w * Math.min(frac, 1)), 3, 1.5, 1.5, "F"); }
+    }
+
+    // encabezado
+    doc.setFillColor(NAVY[0], NAVY[1], NAVY[2]); doc.rect(0, 0, W, 34, "F");
+    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(20);
+    text("OrientaIA", M, 16);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    text("Resultado del Test de Orientación Vocacional CHASIDE", M, 25);
+
+    // datos del registro
+    y = 46;
+    ink(MUTED); doc.setFontSize(9);
+    text("CÓDIGO DE ACCESO", M, y); text("FECHA Y HORA", 90, y); text("PREGUNTAS RESPONDIDAS", 150, y);
+    y += 6;
+    ink(INK); doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    text(code, M, y); text(fmtDateTime(when), 90, y); text(Object.keys(state.answers).length + " / " + QUESTIONS.length, 150, y);
+    y += 12;
+
+    // areas destacadas
+    sectionTitle("Áreas vocacionales más representativas");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13); ink(MINT);
+    text(r.topAreaPills.join("   ·   "), M, y);
+    y += 12;
+
+    // puntaje por area
+    sectionTitle("Puntaje por área (máximo " + MAX_PER_AREA + " por área)");
+    r.scoresList.forEach(function (s) {
+      ensureSpace(8);
+      doc.setFont("helvetica", s.top ? "bold" : "normal"); doc.setFontSize(10); ink(INK);
+      text(s.name, M, y);
+      bar(100, y - 2.6, 62, s.score / MAX_PER_AREA, s.top ? MINT : BLUE);
+      text(s.score + "/" + MAX_PER_AREA + "  (" + s.pct + "%)", W - M, y, { align: "right" });
+      y += 7.5;
+    });
+    y += 5;
+
+    // carreras recomendadas
+    sectionTitle("Carreras recomendadas para tu perfil");
+    if (r.engine !== "regla") {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); ink(MUTED);
+      var note = doc.splitTextToSize("Ordenadas por un modelo de aprendizaje automático (k-NN, versión " + r.engine + ") a partir de tus 7 puntajes. La afinidad es relativa: la primera carrera = 100%.", W - 2 * M);
+      text(note, M, y);
+      y += note.length * 4 + 4;
+    }
+    r.careers.forEach(function (c, i) {
+      ensureSpace(8);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); ink(INK);
+      text((i + 1) + ". " + c.name, M, y);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); ink(MUTED);
+      text(AREA_NAMES[c.area] || "", 100, y);
+      if (c.affinity != null) {
+        bar(150, y - 2.6, 26, c.affinity, MINT);
+        doc.setFontSize(9.5); ink(INK);
+        text(Math.round(c.affinity * 100) + "%", W - M, y, { align: "right" });
+      }
+      y += 7.5;
+    });
+    y += 6;
+
+    // nota final
+    var disclaimer = doc.splitTextToSize("Este resultado es una sugerencia orientativa y no reemplaza una evaluación vocacional profesional. Coméntalo con tu psicólogo o tutor escolar para tomar una decisión informada.", W - 2 * M - 10);
+    var boxH = disclaimer.length * 4.5 + 8;
+    ensureSpace(boxH);
+    doc.setFillColor(246, 248, 251); doc.setDrawColor(LINE[0], LINE[1], LINE[2]);
+    doc.roundedRect(M, y, W - 2 * M, boxH, 2, 2, "FD");
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); ink(MUTED);
+    text(disclaimer, M + 5, y + 6.5);
+
+    // pie en cada pagina
+    var pages = doc.getNumberOfPages();
+    for (var p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); ink(MUTED);
+      text("OrientaIA · Test CHASIDE · Código " + code + " · Generado el " + fmtDateTime(when), M, 290);
+      text("Página " + p + " de " + pages, W - M, 290, { align: "right" });
+    }
+
+    var safeCode = code.replace(/[^A-Za-z0-9_-]+/g, "_") || "resultado";
+    doc.save("resultado-chaside-" + safeCode + ".pdf");
   }
 
   function renderPrint() {
@@ -343,7 +404,6 @@
     if (state.screen === "welcome") body = renderWelcome();
     else if (state.screen === "test") body = renderTest();
     else if (state.screen === "result") body = renderResult();
-    else if (state.screen === "tam") body = renderTam();
     else body = renderThanks();
     var html = renderTopRow() + renderProgress() + body;
     app.innerHTML = '<div class="page">' + html + "</div>" + renderFooter();
@@ -366,6 +426,7 @@
       state.qIndex += 1;
     } else {
       state.screen = "result";
+      state.finishedAt = new Date();
       var r = computeResults();
       saveResultToFirestore(r.scoresList, r.careers, r.engine);
     }
@@ -379,21 +440,13 @@
     }
   }
 
-  function tamAnswer(qid, value) {
-    state.tamAnswers[qid] = value;
-    render();
-  }
-
-  function submitTam() {
-    var allAnswered = TAM_QUESTIONS.every(function (t) { return !!state.tamAnswers[t.id]; });
-    if (!allAnswered) return;
-    saveTamToFirestore();
+  function finish() {
     state.screen = "thanks";
     render();
   }
 
   function restart() {
-    state = { screen: "welcome", code: "", codeError: false, qIndex: 0, answers: {}, tamAnswers: {}, resultDocId: null };
+    state = { screen: "welcome", code: "", codeError: false, qIndex: 0, answers: {}, finishedAt: null };
     render();
   }
 
@@ -405,9 +458,8 @@
     if (action === "start") startTest();
     else if (action === "answer") answer(Number(el.getAttribute("data-qid")), el.getAttribute("data-value"));
     else if (action === "back") back();
-    else if (action === "continue-tam") { state.screen = "tam"; render(); }
-    else if (action === "tam-answer") tamAnswer(Number(el.getAttribute("data-qid")), Number(el.getAttribute("data-value")));
-    else if (action === "submit-tam") submitTam();
+    else if (action === "finish") finish();
+    else if (action === "download-pdf") downloadResultsPdf();
     else if (action === "restart") restart();
     else if (action === "show-print") { state.screen = "print"; render(); }
     else if (action === "hide-print") { state.screen = "welcome"; render(); }

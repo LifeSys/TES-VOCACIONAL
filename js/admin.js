@@ -177,9 +177,7 @@
     var head = ["fecha", "codigo", "modelo"]
       .concat(areas.map(function (a) { return "puntaje_" + a; }))
       .concat(areas.map(function (a) { return "pct_" + a; }))
-      .concat(["area_1", "area_2", "recomendacion_1", "recomendaciones_todas"])
-      .concat(Array.apply(null, Array(14)).map(function (_, i) { return "tam_" + (i + 1); }))
-      .concat(["tam_completado"]);
+      .concat(["area_1", "area_2", "recomendacion_1", "recomendaciones_todas"]);
     var lines = [head.map(csvCell).join(",")];
     results.forEach(function (r) {
       var byArea = {};
@@ -189,9 +187,7 @@
       var row = [fmtDate(r.createdAt), r.code, r.modelo || "regla"]
         .concat(areas.map(function (a) { return byArea[a] ? byArea[a].score : ""; }))
         .concat(areas.map(function (a) { return byArea[a] ? byArea[a].pct : ""; }))
-        .concat([sorted[0] ? sorted[0].name : "", sorted[1] ? sorted[1].name : "", recs[0] || "", recs.join(" | ")])
-        .concat(Array.apply(null, Array(14)).map(function (_, i) { return r.tam ? (r.tam[i + 1] != null ? r.tam[i + 1] : "") : ""; }))
-        .concat([r.tamCompletedAt ? fmtDate(r.tamCompletedAt) : ""]);
+        .concat([sorted[0] ? sorted[0].name : "", sorted[1] ? sorted[1].name : "", recs[0] || "", recs.join(" | ")]);
       lines.push(row.map(csvCell).join(","));
     });
     var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });

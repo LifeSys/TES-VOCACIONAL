@@ -2,19 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Colección "resultados": cada estudiante crea (y luego actualiza, para
-    // sumar el TAM) su propio documento sin necesitar login — así lo hicimos
-    // para no pedirle nombre ni cuenta a un menor de edad. Leer/listar y
+    // Colección "resultados": cada estudiante crea su propio documento sin
+    // necesitar login — así lo hicimos para no pedirle nombre ni cuenta a un
+    // menor de edad. Una vez creado, nadie lo puede modificar. Leer/listar y
     // borrar SOLO lo puede hacer un administrador autenticado (panel admin).
     //
-    // Nota de seguridad honesta: "update" queda abierto a cualquiera (no solo
-    // al autor original) porque el estudiante no tiene sesión — es el mismo
-    // costo/beneficio de un prototipo de tesis, no de un sistema en producción
-    // con miles de usuarios. Si esto pasa a producción real, conviene mover el
-    // guardado a una Cloud Function con validación en servidor.
+    // Nota de seguridad honesta: "create" queda abierto a cualquiera porque el
+    // estudiante no tiene sesión — es el costo/beneficio de un prototipo de
+    // tesis. Si esto pasa a producción real, conviene mover el guardado a una
+    // Cloud Function con validación en servidor.
     match /resultados/{docId} {
       allow create: if true;
-      allow update: if true;
+      allow update: if false;
       allow read, delete: if request.auth != null;
     }
   }
