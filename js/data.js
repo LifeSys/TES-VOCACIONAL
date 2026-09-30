@@ -23,7 +23,7 @@ const CHASIDE_DATA = {
       "id": 98,
       "area": "C",
       "scale": "interes",
-      "text": "¿Sabés qué es el PBI?"
+      "text": "¿Sabes qué es el PBI?"
     },
     {
       "id": 9,
@@ -35,7 +35,7 @@ const CHASIDE_DATA = {
       "id": 21,
       "area": "A",
       "scale": "interes",
-      "text": "¿Sos el que pone un toque de alegría en las fiestas?"
+      "text": "¿Eres el que pone un toque de alegría en las fiestas?"
     },
     {
       "id": 33,
@@ -65,7 +65,7 @@ const CHASIDE_DATA = {
       "id": 12,
       "area": "C",
       "scale": "interes",
-      "text": "¿Podés establecer la diferencia conceptual entre macroeconomía y microeconomía?"
+      "text": "¿Puedes establecer la diferencia conceptual entre macroeconomía y microeconomía?"
     },
     {
       "id": 34,
@@ -101,7 +101,7 @@ const CHASIDE_DATA = {
       "id": 42,
       "area": "E",
       "scale": "interes",
-      "text": "¿Te gustaría trabajar en un laboratorio mientras estudiás?"
+      "text": "¿Te gustaría trabajar en un laboratorio mientras estudias?"
     },
     {
       "id": 64,
@@ -119,7 +119,7 @@ const CHASIDE_DATA = {
       "id": 96,
       "area": "A",
       "scale": "interes",
-      "text": "¿Cuando elegís tu ropa o decorás un ambiente, tenés en cuenta la combinación de los colores, las telas o el estilo de los muebles?"
+      "text": "¿Cuando eliges tu ropa o decoras un ambiente, tienes en cuenta la combinación de los colores, las telas o el estilo de los muebles?"
     },
     {
       "id": 70,
@@ -131,13 +131,13 @@ const CHASIDE_DATA = {
       "id": 19,
       "area": "I",
       "scale": "interes",
-      "text": "¿Cuando tenés que resolver un problema matemático, perseverás hasta encontrar la solución?"
+      "text": "¿Cuando tienes que resolver un problema matemático, perseveras hasta encontrar la solución?"
     },
     {
       "id": 48,
       "area": "D",
       "scale": "interes",
-      "text": "¿Elegirías una profesión en la tuvieras que estar algunos meses alejado de tu familia, por ejemplo el marino?"
+      "text": "¿Elegirías una profesión en la que tuvieras que estar algunos meses alejado de tu familia, por ejemplo el marino?"
     },
     {
       "id": 88,
@@ -167,7 +167,7 @@ const CHASIDE_DATA = {
       "id": 8,
       "area": "S",
       "scale": "interes",
-      "text": "¿Escuchás atentamente los problemas que te plantean tus amigos?"
+      "text": "¿Escuchas atentamente los problemas que te plantean tus amigos?"
     },
     {
       "id": 38,
@@ -203,7 +203,7 @@ const CHASIDE_DATA = {
       "id": 28,
       "area": "A",
       "scale": "interes",
-      "text": "¿Disfrutás modelando con arcilla?"
+      "text": "¿Disfrutas modelando con arcilla?"
     },
     {
       "id": 87,
@@ -215,7 +215,7 @@ const CHASIDE_DATA = {
       "id": 60,
       "area": "I",
       "scale": "interes",
-      "text": "¿Cuando se descompone un artefacto en tu casa, te disponés prontamente a repararlo?"
+      "text": "¿Cuando se descompone un artefacto en tu casa, te dispones prontamente a repararlo?"
     },
     {
       "id": 5,
@@ -251,13 +251,13 @@ const CHASIDE_DATA = {
       "id": 62,
       "area": "S",
       "scale": "interes",
-      "text": "¿Acostumbrás a leer revistas relacionadas con los últimos avances científicos y tecnológicos en el área de la salud?"
+      "text": "¿Acostumbras a leer revistas relacionadas con los últimos avances científicos y tecnológicos en el área de la salud?"
     },
     {
       "id": 27,
       "area": "I",
       "scale": "interes",
-      "text": "¿Entablás una relación casi personal con tu computadora?"
+      "text": "¿Entablas una relación casi personal con tu computadora?"
     },
     {
       "id": 65,
@@ -359,7 +359,7 @@ const CHASIDE_DATA = {
       "id": 71,
       "area": "C",
       "scale": "interes",
-      "text": "¿En un equipo de trabajo, preferís el rol de coordinador?"
+      "text": "¿En un equipo de trabajo, prefieres el rol de coordinador?"
     },
     {
       "id": 56,
@@ -377,7 +377,7 @@ const CHASIDE_DATA = {
       "id": 16,
       "area": "S",
       "scale": "interes",
-      "text": "¿Convencés fácilmente a otras personas sobre la validez de tus argumentos?"
+      "text": "¿Convences fácilmente a otras personas sobre la validez de tus argumentos?"
     },
     {
       "id": 47,
@@ -413,7 +413,7 @@ const CHASIDE_DATA = {
       "id": 36,
       "area": "A",
       "scale": "interes",
-      "text": "¿Fuera de los horarios escolares, dedicás algún día de la semana a la realización de actividades corporales?"
+      "text": "¿Fuera de los horarios escolares, dedicas algún día de la semana a la realización de actividades corporales?"
     },
     {
       "id": 52,
@@ -467,7 +467,7 @@ const CHASIDE_DATA = {
       "id": 26,
       "area": "I",
       "scale": "aptitud",
-      "text": "¿Planificás detalladamente tus trabajos antes de empezar?"
+      "text": "¿Planificas detalladamente tus trabajos antes de empezar?"
     },
     {
       "id": 13,
@@ -491,7 +491,7 @@ const CHASIDE_DATA = {
       "id": 30,
       "area": "H",
       "scale": "aptitud",
-      "text": "¿Considerás importante que desde la escuela primaria se fomente la actitud crítica y la participación activa?"
+      "text": "¿Consideras importante que desde la escuela primaria se fomente la actitud crítica y la participación activa?"
     },
     {
       "id": 39,
@@ -533,7 +533,7 @@ const CHASIDE_DATA = {
       "id": 72,
       "area": "H",
       "scale": "aptitud",
-      "text": "¿En una discusión entre amigos, te ofrecés como mediador?"
+      "text": "¿En una discusión entre amigos, te ofreces como mediador?"
     },
     {
       "id": 76,
@@ -545,7 +545,7 @@ const CHASIDE_DATA = {
       "id": 29,
       "area": "S",
       "scale": "aptitud",
-      "text": "¿Ayudás habitualmente a los no videntes a cruzar la calle?"
+      "text": "¿Ayudas habitualmente a los no videntes a cruzar la calle?"
     },
     {
       "id": 90,
@@ -557,25 +557,25 @@ const CHASIDE_DATA = {
       "id": 18,
       "area": "D",
       "scale": "aptitud",
-      "text": "¿Ante una situación de emergencia actuás rápidamente?"
+      "text": "¿Ante una situación de emergencia actúas rápidamente?"
     },
     {
       "id": 79,
       "area": "E",
       "scale": "aptitud",
-      "text": "¿Te inhibís al entrar a un lugar nuevo con gente desconocida?"
+      "text": "¿Te inhibes al entrar a un lugar nuevo con gente desconocida?"
     },
     {
       "id": 46,
       "area": "C",
       "scale": "aptitud",
-      "text": "¿Distribuís tu horarios del día adecuadamente para poder hacer todo lo planeado?"
+      "text": "¿Distribuyes tus horarios del día adecuadamente para poder hacer todo lo planeado?"
     },
     {
       "id": 86,
       "area": "H",
       "scale": "aptitud",
-      "text": "¿Sos de los que defendés causas perdidas?"
+      "text": "¿Eres de los que defienden causas perdidas?"
     },
     {
       "id": 82,
@@ -593,7 +593,7 @@ const CHASIDE_DATA = {
       "id": 10,
       "area": "I",
       "scale": "aptitud",
-      "text": "¿Sos exigente y crítico con tu equipo de trabajo?"
+      "text": "¿Eres exigente y crítico con tu equipo de trabajo?"
     },
     {
       "id": 43,
@@ -605,7 +605,7 @@ const CHASIDE_DATA = {
       "id": 55,
       "area": "E",
       "scale": "aptitud",
-      "text": "¿Tenés interés por saber cuales son las causas que determinan ciertos fenómenos, aunque saberlo no altere tu vida?"
+      "text": "¿Tienes interés por saber cuáles son las causas que determinan ciertos fenómenos, aunque saberlo no altere tu vida?"
     }
   ],
   "careers": [

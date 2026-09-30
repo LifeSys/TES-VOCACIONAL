@@ -1,50 +1,37 @@
-# Módulo de Machine Learning (k-NN)
+# Módulo de machine learning
 
-Recomienda carreras a partir de los 7 puntajes CHASIDE del estudiante. Reemplaza la regla anterior
-("mostrar las carreras de las 2 áreas con mayor puntaje") por un **modelo de aprendizaje supervisado**.
+El modelo aprende: *"las personas que responden así el CHASIDE están satisfechas en esta área"*.
 
-```
-puntajes CHASIDE (7 números 0-14)  ->  modelo k-NN  ->  ranking de 8 carreras con afinidad
-```
+| Elemento | Definición |
+|---|---|
+| Entrada (X) | Las 98 respuestas del CHASIDE (1 = Sí, 0 = No) |
+| Etiqueta (y) | Área CHASIDE de la carrera (C, H, A, S, I, D, E) |
+| Casos que entran | UNI con satisfacción promedio ≥ 4; EGR con satisfacción ≥ 4 y que trabaja en su área; ambos con test válido |
+| Mínimo | 50 casos por área; un área con menos queda fuera del modelo (solo clave clásica) |
+| Modelos comparados | Clave CHASIDE (línea base), regresión logística, Naive Bayes, Random Forest, SVM |
+| Validación | 5 pliegues estratificados; exactitud top-3 (y top-1) y F1 macro |
+| Modelo desplegado | Regresión logística → `modelo.json` en la raíz del repositorio |
+| Salida en la web | Probabilidad por área (top 3), carreras de esas áreas y las 3 preguntas que más pesaron |
 
-El puntaje CHASIDE en sí (contar los "Sí" por área) **no cambia**: es el instrumento validado.
-El modelo actúa *después*, usando esos 7 números como entrada.
+Los escolares (EXP y CTL) nunca se usan para entrenar. Cada resultado guardado lleva la versión del modelo (`resultado.modelo.v`).
 
 ## Archivos
 
 | Archivo | Qué hace |
 |---|---|
-| `build_dataset.py` | Fase 1. Define el perfil CHASIDE típico de cada carrera y genera estudiantes sintéticos → `data/dataset.csv` |
-| `train_model.py` | Fases 2-3. Selecciona hiperparámetros (CV 5-fold), evalúa en datos de prueba, compara con la regla anterior, reentrena y exporta → `../js/ml-model.js` y `reports/` |
-| `verify_js_parity.js` | Comprueba que el navegador (JS) da los mismos rankings que Python |
-| `retrain_from_csv.py` | Reentrena mezclando datos reales validados (ver abajo) |
-| `reports/metrics.md` | Reporte de resultados (para el anexo de la tesis) |
-| `../js/ml-engine.js` | Inferencia en el navegador (sin servidor) |
+| `entrenar_modelo.py` | Filtra los casos válidos, compara los 5 métodos, entrena la regresión logística y escribe `modelo.json` y `reportes/` |
+| `entrenamiento_colab.ipynb` | Cuaderno de Google Colab que sube el script y el CSV, entrena y descarga `modelo.json` |
+| `verificar_js.js` | Comprueba que el navegador calcula las mismas probabilidades que Python |
+| `reportes/comparacion_modelos.md` | Tabla de comparación de modelos del último entrenamiento (anexo de la tesis) |
 
-## Regenerar el modelo desde cero
+## Entrenar con los datos reales
 
-```bash
-pip install -r ml/requirements.txt
-python ml/build_dataset.py
-python ml/train_model.py
-node ml/verify_js_parity.js     # debe decir: difieren: 0
-```
+1. Panel admin → pestaña **Conteo por área**: espera a tener ≥ 50 casos válidos por área.
+2. Pestaña **Entrenamiento** → **Exportar CSV de entrenamiento**.
+3. Abre `entrenamiento_colab.ipynb` en Google Colab, sube `entrenar_modelo.py` y el CSV, y ejecuta las celdas (o en local: `python ml/entrenar_modelo.py entrenamiento-chaside-AAAA-MM-DD.csv --version 1.0`).
+4. Copia el `modelo.json` descargado a la raíz del repositorio (reemplaza al provisional), ejecuta `node ml/verificar_js.js` si lo entrenaste en local, y haz commit + push.
+5. En `js/config.js` pon `recoleccionEntrenamientoAbierta: false` antes de aplicar el cuasi experimento.
 
-Luego `git add . && git commit && git push` y el sitio usa el modelo nuevo.
+## Modelo provisional
 
-## ¿Hay que "entrenar el sistema" a mano?
-
-No. El modelo **ya está entrenado y publicado** (`js/ml-model.js`). Estos pasos solo se repiten si
-cambias las carreras, los perfiles o quieres incorporar datos reales.
-
-## Datos reales (después del piloto)
-
-Los perfiles de entrenamiento actuales son **sintéticos** (criterio experto). Con el piloto:
-
-1. Panel admin → **Exportar CSV**.
-2. En Excel agrega la columna `carrera_validada` (carrera validada por el psicólogo escolar o
-   elegida por el estudiante; texto idéntico al de `js/data.js`).
-3. `python ml/retrain_from_csv.py resultados.csv` (solo combina) o con `--entrenar` (reentrena).
-
-**Con 32 estudiantes no conviene reentrenar**: sirven para **validar** (¿la recomendación del modelo
-coincide con la del psicólogo?), que es lo que pide el objetivo de evaluación de la tesis.
+El `modelo.json` actual (versión `0.1-sintetico`) se generó con `python ml/entrenar_modelo.py --sintetico --version 0.1-sintetico`: estudiantes **simulados** que responden Sí con más probabilidad a los ítems de su área. Solo sirve para probar el sistema y el modo Demo; sus métricas no son resultados de la tesis.

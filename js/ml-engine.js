@@ -1,70 +1,70 @@
-// Motor de inferencia k-NN (corre 100% en el navegador, sin servidor).
-// Usa el modelo entrenado en Python (js/ml-model.js -> CHASIDE_ML_MODEL).
-// La logica es identica a rank_row() de ml/train_model.py; ml/verify_js_parity.js
-// comprueba que ambas implementaciones producen los mismos rankings.
+// Motor de inferencia del modelo de ML (RF11, RF12). Corre 100% en el navegador (RNF02, RNF04).
 //
-// Entrada: puntajes CHASIDE del estudiante, un entero 0..14 por area, en el orden
-//          del modelo (C, H, A, S, I, D, E).
-// Salida:  ranking de carreras [{name, area, score, affinity}], de mayor a menor afinidad.
-//          affinity = votos de la carrera / votos de la mejor carrera (la mejor = 1).
+// Modelo: regresión logística multinomial entrenada con ml/entrenar_modelo.py (Google Colab) y
+// publicada como modelo.json (RNF06: cambiar el modelo = reemplazar ese archivo).
+//   Entrada: las 98 respuestas del CHASIDE (1 = Sí, 0 = No), en orden de ítem 1..98.
+//   Salida:  probabilidad de cada área, ranking y los 3 ítems que más pesaron en el área top.
 const ChasideML = (function () {
   "use strict";
-  var M = CHASIDE_ML_MODEL;
-  var N = M.X.length;
+  var modelo = null;
+  var cargando = null;
 
-  function rankIndices(scores) {
-    // distancia euclidiana al cuadrado (entera, exacta) contra cada perfil de entrenamiento
-    var d2 = new Array(N);
-    for (var i = 0; i < N; i++) {
-      var row = M.X[i], s = 0;
-      for (var j = 0; j < scores.length; j++) {
-        var diff = scores[j] - row[j];
-        s += diff * diff;
-      }
-      d2[i] = s;
-    }
-    // vecinos ordenados por distancia; desempate estable por posicion
-    var order = new Array(N);
-    for (var t = 0; t < N; t++) order[t] = t;
-    order.sort(function (a, b) { return d2[a] - d2[b] || a - b; });
-
-    var nClasses = M.careers.length;
-    var kk = Math.min(M.k, N);
-    var votes;
-    while (true) {
-      votes = new Array(nClasses).fill(0);
-      for (var n = 0; n < kk; n++) {
-        var idx = order[n];
-        var w = M.weights === "distance"
-          ? 1.0 / (Math.sqrt(d2[idx]) / M.maxScore + M.eps)
-          : 1.0;
-        votes[M.y[idx]] += w;
-      }
-      var withVotes = 0;
-      for (var c = 0; c < nClasses; c++) if (votes[c] > 0) withVotes++;
-      // si hay menos carreras candidatas de las necesarias, se amplia k (vecinos mas lejanos)
-      if (withVotes >= M.minCandidates || kk >= N) break;
-      kk = Math.min(kk * 2, N);
-    }
-    var ranking = [];
-    for (var r = 0; r < nClasses; r++) ranking.push(r);
-    ranking.sort(function (a, b) { return (votes[b] - votes[a]) || (a - b); });
-    return { ranking: ranking, votes: votes };
+  function cargar(url) {
+    if (cargando) return cargando;
+    cargando = fetch(url, { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (m) { validar(m); modelo = m; return m; })
+      .catch(function (err) { console.warn("No se pudo cargar el modelo de ML:", err); modelo = null; return null; });
+    return cargando;
   }
 
-  function recommend(scores, topN) {
-    var res = rankIndices(scores);
-    var n = topN || M.topN;
-    var best = res.votes[res.ranking[0]] || 1;
-    return res.ranking.slice(0, n).map(function (c) {
-      return {
-        name: M.careers[c],
-        area: M.careerAreas[c],
-        score: res.votes[c],
-        affinity: res.votes[c] / best
-      };
-    });
+  function validar(m) {
+    if (!m || !m.areas || !m.coef || !m.intercept || !m.items) throw new Error("modelo.json incompleto");
+    if (m.coef.length !== m.areas.length || m.intercept.length !== m.areas.length) throw new Error("dimensiones de modelo.json");
+    m.coef.forEach(function (fila) { if (fila.length !== m.items.length) throw new Error("dimensiones de coef"); });
   }
 
-  return { recommend: recommend, rankIndices: rankIndices, model: M };
+  // respuestas: arreglo de 98 valores 0/1, posición i = ítem i+1
+  function predecir(respuestas) {
+    if (!modelo) return null;
+    var x = modelo.items.map(function (id) { return respuestas[id - 1] ? 1 : 0; });
+    var K = modelo.areas.length, logits = new Array(K), maxL = -Infinity;
+    for (var k = 0; k < K; k++) {
+      var z = modelo.intercept[k], w = modelo.coef[k];
+      for (var j = 0; j < x.length; j++) if (x[j]) z += w[j];
+      logits[k] = z;
+      if (z > maxL) maxL = z;
+    }
+    var suma = 0, exps = logits.map(function (z) { var e = Math.exp(z - maxL); suma += e; return e; });
+    var probs = {};
+    modelo.areas.forEach(function (a, k) { probs[a] = exps[k] / suma; });
+    var ranking = modelo.areas.slice().sort(function (a, b) { return probs[b] - probs[a]; });
+
+    // Explicación: ítems respondidos "Sí" que más empujan hacia el área top frente al promedio
+    // de las demás áreas (coeficiente relativo). Son los que "más pesaron" en la recomendación.
+    var kTop = modelo.areas.indexOf(ranking[0]);
+    var aportes = [];
+    for (var jj = 0; jj < x.length; jj++) {
+      if (!x[jj]) continue;
+      var media = 0;
+      for (var m = 0; m < K; m++) media += modelo.coef[m][jj];
+      media /= K;
+      var aporte = modelo.coef[kTop][jj] - media;
+      if (aporte > 0) aportes.push({ item: modelo.items[jj], aporte: aporte });
+    }
+    aportes.sort(function (a, b) { return b.aporte - a.aporte; });
+
+    return {
+      version: modelo.version,
+      probs: probs,
+      ranking: ranking,
+      explicacion: aportes.slice(0, 3).map(function (a) { return a.item; })
+    };
+  }
+
+  return {
+    cargar: cargar,
+    predecir: predecir,
+    modelo: function () { return modelo; }
+  };
 })();

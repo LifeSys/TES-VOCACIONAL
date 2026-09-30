@@ -151,11 +151,6 @@ a:hover { color: var(--mint); }
 .score-fill { height: 100%; border-radius: 999px; background: var(--text-muted); }
 .score-fill.is-top { background: var(--mint); }
 
-.career-list { display: flex; flex-direction: column; gap: 10px; }
-.career-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; }
-.career-name { font-size: 14px; font-weight: 600; }
-.career-area { font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; color: var(--mint); background: var(--mint-soft); padding: 4px 9px; border-radius: 7px; flex-shrink: 0; text-align: right; }
-
 .disclaimer-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-top: 30px; }
 .disclaimer-box p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.55; }
 
@@ -207,10 +202,101 @@ a:hover { color: var(--mint); }
 .area-pill-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0; }
 .area-pill { font-size: 11.5px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; color: var(--text-muted); }
 
-/* Recomendacion por modelo ML: afinidad relativa por carrera */
 .section-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: -8px 0 14px; }
-.career-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
-.affinity { display: flex; align-items: center; gap: 8px; }
-.affinity-track { flex: 1; height: 4px; border-radius: 999px; background: var(--border); overflow: hidden; }
-.affinity-fill { height: 100%; border-radius: 999px; background: var(--mint); }
-.affinity-label { font-size: 11px; font-weight: 700; color: var(--text-muted); min-width: 32px; text-align: right; }
+
+/* Avisos y consentimiento */
+.notice-box { background: var(--mint-soft); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: 14px; padding: 16px 18px; margin: 22px 0 0; }
+.notice-box p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text); }
+.notice-box .btn-secondary { margin-top: 12px; }
+.consent-text { margin: 22px 0 0; display: flex; flex-direction: column; gap: 12px; }
+.consent-text p { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--text-muted); }
+.check-row { display: flex; gap: 12px; align-items: flex-start; margin-top: 24px; padding: 16px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 12px; cursor: pointer; font-size: 14.5px; font-weight: 600; line-height: 1.5; }
+.check-row input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--mint); flex-shrink: 0; }
+
+/* Formularios (datos de carrera) */
+.form-block { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
+.form-row { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.select-input {
+  width: 100%; height: 50px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--surface-2); padding: 0 12px; font-size: 15px; color: var(--text); font-family: inherit; outline: none;
+}
+.select-input:focus { border-color: var(--blue); }
+.text-left { text-align: left; }
+.yesno-inline { display: flex; gap: 10px; }
+
+/* Escalas Likert */
+.tam-list { display: flex; flex-direction: column; gap: 6px; margin-top: 22px; }
+.tam-section-title { font-size: 12px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.04em; margin: 16px 0 2px; }
+.tam-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.tam-text { margin: 0; font-size: 14px; line-height: 1.45; text-align: left; }
+.item-n { color: var(--text-muted); font-weight: 700; margin-right: 2px; }
+.likert-row-compact { display: flex; gap: 8px; flex-wrap: wrap; }
+.likert-pill {
+  width: 44px; height: 44px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: var(--surface); font-family: inherit; font-size: 14px; font-weight: 700;
+  color: var(--text-muted); cursor: pointer;
+}
+.likert-pill.wide { width: 96px; }
+.likert-pill-selected { border-color: var(--mint); background: var(--mint); color: #06281c; }
+.tam-legend { font-size: 12.5px; color: var(--text-muted); text-align: center; margin: 14px 0 0; }
+.tam-progress-note { font-size: 12.5px; color: var(--text-muted); text-align: center; margin: 12px 0 0; }
+
+/* Resultado del modelo */
+.ml-list { display: flex; flex-direction: column; gap: 12px; }
+.ml-area { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ml-area.is-first { border-color: rgba(52, 211, 153, 0.55); }
+.ml-area-head { display: flex; align-items: center; gap: 10px; }
+.ml-rank { width: 24px; height: 24px; border-radius: 999px; background: var(--mint-soft); color: var(--mint); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ml-name { font-size: 14.5px; font-weight: 700; flex: 1; }
+.ml-pct { font-size: 14px; font-weight: 800; color: var(--mint); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11.5px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+.why-list { display: flex; flex-direction: column; gap: 8px; }
+.why-item { font-size: 13.5px; line-height: 1.45; padding: 10px 14px; border-left: 3px solid var(--mint); background: var(--surface-2); border-radius: 0 10px 10px 0; }
+.tie { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--blue); margin-left: 4px; }
+
+/* Panel admin: pestañas, métricas y conteo */
+.page-wide { max-width: 1100px; }
+.card-narrow { max-width: 460px; margin: 0 auto; }
+.admin-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.admin-tab { background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 14px; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; margin-bottom: -1px; }
+.admin-tab.is-active { color: var(--text); border-bottom-color: var(--mint); }
+.admin-btn { background: none; border: 1.5px solid var(--border); border-radius: 10px; padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--mint); cursor: pointer; }
+.admin-btn:hover { border-color: var(--mint); }
+.admin-note { font-size: 12.5px; color: var(--text-muted); line-height: 1.55; margin: 0 0 14px; }
+.admin-warn { font-size: 13px; line-height: 1.55; color: #fde68a; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 12px; padding: 12px 14px; margin: 0 0 16px; }
+.tag-ok { color: var(--mint); font-weight: 700; }
+.tag-bad { color: var(--danger); font-weight: 700; }
+.count-list { display: flex; flex-direction: column; gap: 14px; }
+.count-row { display: grid; grid-template-columns: 220px 1fr 70px; gap: 14px; align-items: center; font-size: 13.5px; }
+@media (max-width: 640px) { .count-row { grid-template-columns: 1fr 64px; } .count-row .score-track { grid-column: 1 / -1; order: 3; } }
+
+/* Hoja imprimible del panel (cuestionario, clave y carreras) */
+.print-sheet { background: #fff; color: #111; border-radius: 14px; padding: 28px; font-size: 12.5px; }
+.print-sheet h2 { font-size: 18px; margin: 0 0 4px; }
+.print-sheet h3 { font-size: 14px; margin: 22px 0 8px; }
+.print-sheet .sub { color: #555; margin: 0 0 14px; }
+.print-item { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px solid #ddd; }
+.print-item .n { color: #888; margin-right: 6px; }
+.print-checks { display: flex; gap: 14px; flex-shrink: 0; font-size: 11px; color: #555; }
+.print-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.print-table th, .print-table td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; }
+.print-table th { background: #f1f3f6; }
+.page-break { break-before: page; }
+@media print {
+  body { background: #fff; }
+  body * { visibility: hidden; }
+  .print-sheet, .print-sheet * { visibility: visible; }
+  .print-sheet { position: absolute; left: 0; top: 0; width: 100%; padding: 0; border-radius: 0; }
+}
+
+/* Política de privacidad */
+.legal h2 { font-size: 16px; font-weight: 700; margin: 30px 0 10px; color: var(--text); }
+.legal p, .legal li { font-size: 14.5px; line-height: 1.7; color: var(--text-muted); }
+.legal p { margin: 0 0 10px; }
+.legal ul { margin: 0 0 10px; padding-left: 20px; }
+.legal li { margin-bottom: 6px; }
+.legal b { color: var(--text); }
+a.q-tag { text-decoration: none; }
+.footer-bottom a { color: var(--mint); font-weight: 600; }

@@ -2,18 +2,48 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Colección "resultados": cada estudiante crea su propio documento sin
-    // necesitar login — así lo hicimos para no pedirle nombre ni cuenta a un
-    // menor de edad. Una vez creado, nadie lo puede modificar. Leer/listar y
-    // borrar SOLO lo puede hacer un administrador autenticado (panel admin).
-    //
-    // Nota de seguridad honesta: "create" queda abierto a cualquiera porque el
-    // estudiante no tiene sesión — es el costo/beneficio de un prototipo de
-    // tesis. Si esto pasa a producción real, conviene mover el guardado a una
-    // Cloud Function con validación en servidor.
+    // RNF01 — Seguridad.
+    //  - El ID de cada documento es el código del participante (EXP-001, UNI-001, ...), así un
+    //    código no puede registrarse dos veces: crear sobre un código existente es una
+    //    actualización, y las actualizaciones no pueden tocar campos que ya tienen valor.
+    //  - Los participantes no inician sesión (no se pide cuenta a menores de edad): pueden
+    //    CREAR su registro y luego AGREGAR campos vacíos por etapas, nunca sobrescribir.
+    //  - Leer, listar y borrar solo con login (panel administrativo, Firebase Authentication).
+
+    // Solo se agregan campos nuevos de la lista permitida; ninguno que ya exista cambia.
+    function soloCamposNuevos(permitidos) {
+      let cambiados = request.resource.data.diff(resource.data).affectedKeys();
+      return cambiados.hasOnly(permitidos) && !cambiados.hasAny(resource.data.keys());
+    }
+
+    function prefijo(codigo) {
+      return codigo.split('-')[0];
+    }
+
+    // Escolares: grupo experimental (EXP) y control (CTL)
+    match /participantes/{codigo} {
+      allow create: if codigo.matches('^(EXP|CTL)-[0-9]{3}$')
+        && request.resource.data.keys().hasOnly(['grupo', 'asentimiento'])
+        && request.resource.data.grupo == prefijo(codigo)
+        && request.resource.data.asentimiento.acepto == true;
+      allow update: if soloCamposNuevos(['pretest', 'inicio', 'chaside', 'fin', 'resultado', 'calidad',
+                                         'postest', 'adecuacion', 'tam', 'sus', 'completado']);
+      allow read, delete: if request.auth != null;
+    }
+
+    // Datos de entrenamiento: universitarios (UNI) y egresados (EGR)
+    match /entrenamiento/{codigo} {
+      allow create: if codigo.matches('^(UNI|EGR)-[0-9]{3}$')
+        && request.resource.data.keys().hasOnly(['tipo', 'consentimiento'])
+        && request.resource.data.tipo == prefijo(codigo)
+        && request.resource.data.consentimiento.acepto == true;
+      allow update: if soloCamposNuevos(['carrera', 'area', 'ciclo', 'anosEgresado', 'trabajaEnArea',
+                                         'satisfaccion', 'chaside', 'calidad', 'completado']);
+      allow read, delete: if request.auth != null;
+    }
+
+    // Registros de la versión anterior del sistema: solo lectura/borrado para el administrador.
     match /resultados/{docId} {
-      allow create: if true;
-      allow update: if false;
       allow read, delete: if request.auth != null;
     }
   }
