@@ -1,24 +1,22 @@
-// Configuración general del sistema. Lo que se cambia entre etapas de la tesis se cambia aquí.
+// Configuración general del sistema.
 const ORIENTA_CONFIG = {
-  // Formato de los códigos de acceso (RF01): prefijo + guion + 3 dígitos, p. ej. EXP-001.
-  formatoCodigo: /^(UNI|EGR|EXP|CTL)-\d{3}$/,
-  codigoDemo: "DEMO",
+  // Único correo con acceso al panel (también está escrito en firestore.rules: cambiar en los dos).
+  correoAdmin: "johannsebastian789@gmail.com",
 
-  // Etapa de recolección de datos de entrenamiento (paso 3 del orden de uso).
-  // Poner en false ANTES de aplicar el cuasi experimento (paso 5): así ya no se aceptan
-  // códigos UNI- ni EGR- y el modelo no cambia a mitad del experimento.
-  recoleccionEntrenamientoAbierta: true,
+  // Aula de prueba para la sustentación: recorre el flujo experimental sin guardar nada.
+  aulaDemo: "DEMO",
 
-  // Calidad de datos (RF09): se marca como no válido un test con todo Sí, todo No,
-  // o con esta cantidad (o más) de respuestas seguidas en menos de `msRapida` milisegundos.
+  // Prefijos de la autonumeración (RF04): ESC-0001, UNI-0001, PRO-0001.
+  prefijos: { escolar: "ESC", universitario: "UNI", profesional: "PRO" },
+  digitos: 4,
+
+  // Calidad de datos (RF10): se marca como sospechoso un test con todo Sí, todo No, o con esta
+  // cantidad (o más) de respuestas seguidas en menos de `msRapida` milisegundos.
   calidad: { msRapida: 1000, rapidasSeguidas: 10 },
 
-  // Criterios para que un caso de entrenamiento entre al modelo (sección "Módulo de ML").
-  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 50 },
+  // Criterios para que un adulto entre al modelo (sección "Módulo de machine learning").
+  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 50, cicloMinimo: 3 },
 
   // Modelo de ML desplegado (RNF06): para cambiarlo basta con reemplazar este archivo.
-  modeloUrl: "modelo.json",
-
-  // Segundos máximos de espera al registrar el código (necesita conexión en ese momento).
-  timeoutRegistroMs: 12000
+  modeloUrl: "modelo.json"
 };

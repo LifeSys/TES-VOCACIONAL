@@ -44,7 +44,7 @@ const ResultadoPDF = (function () {
     doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.text("Resultado del Test de Orientación Vocacional CHASIDE", M, 25);
 
     y = 46;
-    font("normal", 9, MUTED); doc.text("CÓDIGO DE ACCESO", M, y); doc.text("FECHA Y HORA", 90, y);
+    font("normal", 9, MUTED); doc.text("NÚMERO DE REGISTRO", M, y); doc.text("FECHA Y HORA", 90, y);
     y += 6;
     font("bold", 12, INK); doc.text(String(r.codigo), M, y); doc.text(fmtFecha(r.fecha), 90, y);
     y += 12;
@@ -103,7 +103,7 @@ const ResultadoPDF = (function () {
     for (var p = 1; p <= paginas; p++) {
       doc.setPage(p);
       font("normal", 8, MUTED);
-      doc.text("OrientaIA · Test CHASIDE · Código " + r.codigo + " · " + fmtFecha(r.fecha), M, 290);
+      doc.text("OrientaIA · Test CHASIDE · N.° " + r.codigo + " · " + fmtFecha(r.fecha), M, 290);
       doc.text("Página " + p + " de " + paginas, W - M, 290, { align: "right" });
     }
     doc.save("resultado-chaside-" + String(r.codigo).replace(/[^A-Za-z0-9_-]+/g, "_") + ".pdf");

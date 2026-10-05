@@ -1,10 +1,10 @@
-// Cálculos del instrumento CHASIDE compartidos por el test (app.js) y el panel admin (admin.js).
+// Cálculos del instrumento CHASIDE compartidos por el test (participante.js) y el panel admin (admin.js).
 const Chaside = (function () {
   "use strict";
   var D = CHASIDE_DATA;
   var MAX_POR_AREA = 14; // 10 de interés + 4 de aptitud
 
-  // RF10 — puntaje clásico con la clave CHASIDE: cantidad de "Sí" por área.
+  // RF11 — puntaje clásico con la clave CHASIDE: cantidad de "Sí" por área.
   // respuestas: arreglo de 98 valores 0/1 (posición i = ítem i+1).
   function clave(respuestas) {
     var tot = {};
@@ -29,20 +29,21 @@ const Chaside = (function () {
     return rankingClave(tot).filter(function (r) { return r.puesto <= n; }).map(function (r) { return r.area; });
   }
 
-  // RF09 — calidad de datos. tiemposMs en el mismo orden que respuestas; `ordenIds` es el orden
-  // en que se mostraron las preguntas (para detectar respuestas rápidas SEGUIDAS).
+  // RF10 — calidad de datos: marca como SOSPECHOSO un test con todo Sí, todo No o respuestas
+  // rápidas seguidas. tiemposMs va en el mismo orden que respuestas; `ordenIds` es el orden en
+  // que se mostraron las preguntas (para detectar respuestas rápidas SEGUIDAS).
   function calidad(respuestas, tiemposMs, ordenIds, cfg) {
     var si = respuestas.filter(function (v) { return v === 1; }).length;
-    if (si === respuestas.length) return { valido: false, motivo: "todo_si" };
-    if (si === 0) return { valido: false, motivo: "todo_no" };
+    if (si === respuestas.length) return { sospechoso: true, motivo: "todo_si" };
+    if (si === 0) return { sospechoso: true, motivo: "todo_no" };
     var racha = 0, maxRacha = 0;
     ordenIds.forEach(function (id) {
       var t = tiemposMs[id - 1];
       racha = (typeof t === "number" && t < cfg.msRapida) ? racha + 1 : 0;
       if (racha > maxRacha) maxRacha = racha;
     });
-    if (maxRacha >= cfg.rapidasSeguidas) return { valido: false, motivo: "respuestas_rapidas" };
-    return { valido: true, motivo: null };
+    if (maxRacha >= cfg.rapidasSeguidas) return { sospechoso: true, motivo: "respuestas_rapidas" };
+    return { sospechoso: false, motivo: null };
   }
 
   function carrerasDeArea(area) {

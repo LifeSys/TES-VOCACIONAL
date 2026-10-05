@@ -1,5 +1,4 @@
-// Panel administrativo (RF14-RF17): login, resultados, exportación CSV, conteo por área,
-// cuestionario imprimible con clave de corrección e información del modelo desplegado.
+// Panel del superadministrador (RF15-RF20): aulas, tablas, conteos, exclusión, borrado y CSV.
 (function () {
   "use strict";
 
@@ -10,13 +9,11 @@
   var N_ITEMS = CHASIDE_DATA.questions.length;
 
   var root = document.getElementById("admin-app");
-  var tab = "escolares";
-  var escolares = [];
-  var entrenamiento = [];
+  var tab = "aulas";
+  var aulas = [], escolares = [], adultos = [];
+  var estado = { adultosAbierto: true };
   var modelo = null;
-  var cargando = false;
-  var errorCarga = "";
-  var loginError = "";
+  var cargando = false, errorCarga = "", loginError = "", mensaje = "";
 
   // ---------- utilidades ----------
   function esc(s) {
@@ -31,9 +28,12 @@
   function fmtFecha(ts) { var d = aFecha(ts); return d ? ResultadoPDF.fmtFecha(d) : ""; }
   function arr(v, n) { var a = Array.isArray(v) ? v : []; var out = []; for (var i = 0; i < n; i++) out.push(a[i] == null ? "" : a[i]); return out; }
   function rango(n, pref) { var out = []; for (var i = 1; i <= n; i++) out.push(pref + i); return out; }
-  function suma(a) { return a.reduce(function (s, v) { return s + (typeof v === "number" ? v : 0); }, 0); }
+  function suma(a) { return (a || []).reduce(function (s, v) { return s + (typeof v === "number" ? v : 0); }, 0); }
   function promedio(a) { var nums = (a || []).filter(function (v) { return typeof v === "number"; }); return nums.length ? suma(nums) / nums.length : null; }
-  function fechaDe(r) { return aFecha((r.asentimiento && r.asentimiento.fecha) || (r.consentimiento && r.consentimiento.fecha)); }
+  function fechaDe(r) { return aFecha(r.completado) || aFecha(r.fin); }
+  function duracionSeg(r) { var a = aFecha(r.inicio), b = aFecha(r.fin); return a && b ? Math.round((b - a) / 1000) : ""; }
+  function sospechoso(r) { return !!(r.calidad && r.calidad.sospechoso); }
+  function valido(r) { return !sospechoso(r) && !r.excluido; }
 
   // SUS (Brooke): impares (x-1), pares (5-x), total x 2.5 -> 0..100
   function puntajeSus(sus) {
@@ -53,35 +53,30 @@
     if (!p) return [];
     return Object.keys(p).sort(function (a, b) { return p[b] - p[a]; }).slice(0, 3);
   }
-  // Criterio de entrada al modelo (sección "Módulo de machine learning")
+  // Casos que entran al modelo (sección "Módulo de machine learning")
   function entraAlModelo(r) {
-    if (!r.calidad || r.calidad.valido !== true || !r.chaside || !r.area) return false;
+    if (!valido(r) || !r.chaside || !r.area) return false;
     var sat = promedio(r.satisfaccion);
     if (sat == null || sat < CFG.entrenamiento.satisfaccionMinima) return false;
-    return r.tipo === "UNI" || (r.tipo === "EGR" && r.trabajaEnArea === true);
+    if (r.tipo === "universitario") return Number(r.ciclo) >= CFG.entrenamiento.cicloMinimo;
+    return r.tipo === "profesional" && r.trabajaEnArea === true;
   }
-  function duracionSeg(r) {
-    var a = aFecha(r.inicio), b = aFecha(r.fin);
-    return a && b ? Math.round((b - a) / 1000) : "";
+  function calidadHtml(r) {
+    var c = r.calidad;
+    var base = !c ? "—" : c.sospechoso ? '<span class="tag-bad">Sospechoso</span><br><span class="admin-pct">' + esc(c.motivo) + "</span>" : '<span class="tag-ok">OK</span>';
+    return base + (r.excluido ? '<br><span class="tag-bad">Excluido</span>' : "");
   }
-  function avance(r) {
-    if (r.completado) return '<span class="tag-ok">Completo</span>';
-    var pasos = r.grupo === "CTL" ? ["pretest", "inicio", "fin", "postest", "adecuacion"] : ["pretest", "chaside", "postest", "adecuacion", "tam", "sus"];
-    var hechos = pasos.filter(function (k) { return r[k] != null; }).length;
-    return hechos + "/" + pasos.length;
-  }
-  function calidadHtml(c) {
-    if (!c) return "—";
-    return c.valido ? '<span class="tag-ok">Válido</span>' : '<span class="tag-bad">No válido</span><br><span class="admin-pct">' + esc(c.motivo) + "</span>";
+  function botonesRegistro(col, r) {
+    return '<button class="footer-link-btn" style="margin-top:0" data-excluir="' + col + "|" + esc(r.id) + '">' + (r.excluido ? "Incluir" : "Excluir") + "</button>" +
+      '<button class="footer-link-btn" style="margin-top:6px;color:var(--danger)" data-borrar="' + col + "|" + esc(r.id) + '">Borrar</button>';
   }
 
   function auth() { return firebase.auth(); }
   function db() { return firebase.firestore(); }
 
-  // ---------- login ----------
+  // ---------- login (RF15) ----------
   var LOGIN_ERROR_MESSAGES = {
     "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase (Authentication → Settings → Authorized domains).",
-    "auth/invalid-api-key": "La clave de Firebase (js/firebase-config.js) es inválida o no corresponde a este proyecto.",
     "auth/operation-not-allowed": "El método Correo/Contraseña no está habilitado (Authentication → Sign-in method).",
     "auth/user-not-found": "No existe un usuario con ese correo.",
     "auth/wrong-password": "Contraseña incorrecta.",
@@ -94,11 +89,11 @@
   function renderLogin() {
     root.innerHTML =
       '<div class="page">' +
-      '<div class="top-row"><img class="brand-mark-img" src="img/logo.png" width="34" height="34" alt="Logo"><div class="brand-name">Panel Admin</div></div>' +
+      '<div class="top-row"><img class="brand-mark-img" src="img/logo.svg" width="34" height="34" alt="Logo"><div class="brand-name">Panel del superadministrador</div></div>' +
       '<div class="divider"></div>' +
       '<div class="card card-narrow">' +
-      '<h1 class="title" style="font-size:22px">Acceso administrador</h1>' +
-      '<p class="subtitle">Ingresa con tu cuenta autorizada para ver los resultados registrados.</p>' +
+      '<h1 class="title" style="font-size:22px">Acceso restringido</h1>' +
+      '<p class="subtitle">Solo el correo autorizado puede ver y descargar los datos.</p>' +
       '<div class="field-block" style="margin-top:22px"><label class="field-label" for="admin-email">Correo</label>' +
       '<input id="admin-email" class="text-input" type="email" placeholder="tu@correo.com" autocomplete="username" /></div>' +
       '<div class="field-block" style="margin-top:14px"><label class="field-label" for="admin-pass">Contraseña</label>' +
@@ -116,51 +111,79 @@
     loginError = "";
     auth().signInWithEmailAndPassword(email, pass).catch(function (err) {
       var code = err && err.code;
-      loginError = (LOGIN_ERROR_MESSAGES[code] || (err && err.message) || "Error desconocido al iniciar sesión.") + " (" + code + ")";
+      loginError = (LOGIN_ERROR_MESSAGES[code] || (err && err.message) || "Error al iniciar sesión.") + " (" + code + ")";
       renderLogin();
     });
   }
 
   // ---------- pestañas ----------
+  function enlaceAula(codigo) {
+    return location.href.replace(/admin\.html.*$/, "") + "escolar.html?aula=" + encodeURIComponent(codigo);
+  }
+
+  function renderAulas() {
+    var porAula = {};
+    escolares.forEach(function (r) { porAula[r.aula] = (porAula[r.aula] || 0) + 1; });
+    var filas = aulas.map(function (a) {
+      var url = enlaceAula(a.id);
+      return "<tr><td><b>" + esc(a.id) + "</b></td><td>" + esc(a.colegio) + "</td><td>" + esc(a.grado) + ".° " + esc(a.seccion || "") + "</td><td>" + esc(a.grupo) +
+        "</td><td>" + (a.activa ? '<span class="tag-ok">Activa</span>' : '<span class="admin-pct">Cerrada</span>') + "</td><td>" + (porAula[a.id] || 0) +
+        '</td><td><span class="link-cell">' + esc(url) + '</span><button class="footer-link-btn" style="margin-top:4px" data-copiar="' + esc(url) + '">Copiar enlace</button></td>' +
+        '<td><button class="admin-btn" data-aula-toggle="' + esc(a.id) + '">' + (a.activa ? "Cerrar" : "Reabrir") + "</button></td></tr>";
+    }).join("");
+    return (
+      '<p class="admin-note">Crea un aula por sección antes de la sesión, comparte su enlace en clase y ciérrala al terminar (RF16). Un aula cerrada no deja empezar ni guardar tests. Para la sustentación usa el aula de prueba <b>DEMO</b> (no guarda nada): <span class="link-cell">' + esc(enlaceAula("DEMO")) + "</span></p>" +
+      '<div class="card form-inline">' +
+      '<label>Colegio (código)<input id="aula-colegio" class="text-input text-left" maxlength="20" placeholder="Ej. C01"></label>' +
+      '<label>Grado<select id="aula-grado" class="select-input"><option value="4">4.°</option><option value="5">5.°</option></select></label>' +
+      '<label>Sección<input id="aula-seccion" class="text-input text-left" maxlength="5" placeholder="Ej. A"></label>' +
+      '<label>Grupo<select id="aula-grupo" class="select-input"><option value="EXP">Experimental (EXP)</option><option value="CTL">Control (CTL)</option></select></label>' +
+      '<button class="btn-primary" id="aula-crear">Crear aula</button>' +
+      "</div>" +
+      (mensaje ? '<p class="admin-note" style="margin-top:12px">' + esc(mensaje) + "</p>" : "") +
+      '<div style="margin-top:18px">' + tabla(["Código", "Colegio", "Grado", "Grupo", "Estado", "Tests", "Enlace", ""], filas) + "</div>"
+    );
+  }
+
   function renderEscolares() {
     var filas = escolares.map(function (r) {
       var top = top3Modelo(r), p = r.resultado && probsDe(r.resultado.modelo);
-      var topHtml = top.length
+      var res = top.length
         ? top.map(function (a) { return esc(NOM[a]) + ' <span class="admin-pct">' + Math.round(p[a] * 100) + "%</span>"; }).join("<br>")
-        : (r.resultado ? "Solo clave clásica" : "—");
-      var pdf = r.resultado ? '<button class="footer-link-btn" style="margin-top:0" data-pdf="' + esc(r.id) + '">Descargar</button>' : "—";
+        : (r.resultado && r.resultado.clave ? Chaside.topClave(r.resultado.clave, 2).map(function (a) { return esc(NOM[a]); }).join("<br>") + ' <span class="admin-pct">(clásico)</span>' : "—");
       var dur = duracionSeg(r);
-      return "<tr><td><b>" + esc(r.id) + "</b></td><td>" + esc(r.grupo) + "</td><td>" + esc(fmtFecha(fechaDe(r))) + "</td><td>" + avance(r) + "</td><td>" + topHtml +
-        "</td><td>" + calidadHtml(r.calidad) + "</td><td>" + (dur === "" ? "—" : Math.round(dur / 60) + " min") + "</td><td>" + pdf + "</td></tr>";
+      return "<tr" + (r.excluido ? ' class="row-off"' : "") + "><td><b>" + esc(r.id) + "</b><br><span class=\"admin-pct\">" + esc(fmtFecha(fechaDe(r))) + "</span></td><td>" + esc(r.aula) + "<br><span class=\"admin-pct\">" + esc(r.colegio) + " · " + esc(r.grado) + ".°</span></td><td>" + esc(r.grupo) +
+        "</td><td>" + esc(r.sexo || "—") + "</td><td>" + res + "</td><td>" + calidadHtml(r) + "</td><td>" + (dur === "" ? "—" : Math.round(dur / 60) + " min") +
+        '</td><td><button class="footer-link-btn" style="margin-top:0" data-pdf="' + esc(r.id) + '">PDF</button></td><td>' + botonesRegistro("escolares", r) + "</td></tr>";
     }).join("");
-    var nExp = escolares.filter(function (r) { return r.grupo === "EXP"; }).length;
-    var nCtl = escolares.filter(function (r) { return r.grupo === "CTL"; }).length;
+    var g = function (grupo) { var t = escolares.filter(function (r) { return r.grupo === grupo; }); return t.length + " (" + t.filter(valido).length + " válidos)"; };
     return (
-      '<div class="admin-toolbar"><span>' + escolares.length + " registros · EXP " + nExp + " · CTL " + nCtl + "</span>" +
-      '<button class="admin-btn" data-csv="escolares">⬇ Exportar CSV de escolares</button></div>' +
-      tabla(["Código", "Grupo", "Fecha", "Avance", "Top 3 del modelo", "Calidad", "Tiempo", "PDF"], filas)
+      '<div class="admin-toolbar"><span>EXP ' + g("EXP") + " · CTL " + g("CTL") + "</span>" +
+      '<button class="admin-btn" data-csv="escolares">⬇ CSV de escolares (SPSS)</button></div>' +
+      tabla(["Número", "Aula", "Grupo", "Sexo", "Resultado", "Calidad", "Tiempo", "PDF", ""], filas)
     );
   }
 
-  function renderEntrenamiento() {
-    var filas = entrenamiento.map(function (r) {
+  function renderAdultos() {
+    var filas = adultos.map(function (r) {
       var sat = promedio(r.satisfaccion);
-      var extra = r.tipo === "UNI" ? (r.ciclo ? r.ciclo + ".° ciclo" : "") : (r.anosEgresado != null ? r.anosEgresado + " años · " + (r.trabajaEnArea ? "trabaja en su área" : "no trabaja en su área") : "");
-      return "<tr><td><b>" + esc(r.id) + "</b></td><td>" + esc(r.tipo) + "</td><td>" + esc(fmtFecha(fechaDe(r))) + "</td><td>" + esc(r.carrera || "—") +
+      var extra = r.tipo === "universitario" ? (r.ciclo ? r.ciclo + ".° ciclo · " : "") + (r.universidad || "") : (r.anosExperiencia != null ? r.anosExperiencia + " años · " : "") + (r.trabajaEnArea ? "trabaja en su área" : "no trabaja en su área");
+      return "<tr" + (r.excluido ? ' class="row-off"' : "") + "><td><b>" + esc(r.id) + "</b><br><span class=\"admin-pct\">" + esc(fmtFecha(fechaDe(r))) + "</span></td><td>" + esc(r.tipo) + "</td><td>" + esc(r.carrera || "—") +
         '<br><span class="admin-pct">' + esc(extra) + "</span></td><td>" + esc(r.area ? r.area + " · " + NOM[r.area] : "—") + "</td><td>" + (sat == null ? "—" : sat.toFixed(2)) +
-        "</td><td>" + calidadHtml(r.calidad) + "</td><td>" + (entraAlModelo(r) ? '<span class="tag-ok">Sí</span>' : '<span class="admin-pct">No</span>') + "</td></tr>";
+        "</td><td>" + calidadHtml(r) + "</td><td>" + (entraAlModelo(r) ? '<span class="tag-ok">Sí</span>' : '<span class="admin-pct">No</span>') + "</td><td>" + botonesRegistro("adultos", r) + "</td></tr>";
     }).join("");
     return (
-      '<div class="admin-toolbar"><span>' + entrenamiento.length + " registros · " + entrenamiento.filter(entraAlModelo).length + " entran al modelo</span>" +
-      '<button class="admin-btn" data-csv="entrenamiento">⬇ Exportar CSV de entrenamiento</button></div>' +
-      (CFG.recoleccionEntrenamientoAbierta ? "" : '<p class="admin-warn">La recolección de entrenamiento está cerrada (js/config.js): ya no se aceptan códigos UNI- ni EGR-.</p>') +
-      tabla(["Código", "Tipo", "Fecha", "Carrera", "Área", "Satisfacción", "Calidad", "Entra al modelo"], filas)
+      '<div class="admin-toolbar"><span>' + adultos.length + " registros · " + adultos.filter(entraAlModelo).length + " entran al modelo</span>" +
+      '<span style="display:flex;gap:10px;flex-wrap:wrap"><button class="admin-btn" id="adultos-toggle">' + (estado.adultosAbierto ? "🔓 Enlace abierto · Cerrar" : "🔒 Enlace cerrado · Reabrir") + "</button>" +
+      '<button class="admin-btn" data-csv="adultos">⬇ CSV de adultos (entrenamiento)</button></span></div>' +
+      '<p class="admin-note">Enlace para universitarios y profesionales (no compartir en colegios): <span class="link-cell">' + esc(location.href.replace(/admin\.html.*$/, "") + "adultos.html") + "</span>. Ciérralo antes de aplicar el experimento para que el modelo no cambie.</p>" +
+      tabla(["Número", "Tipo", "Carrera", "Área", "Satisfacción", "Calidad", "Entra al modelo", ""], filas)
     );
   }
 
-  function renderConteo() {
+  function renderConteos() {
     var meta = CFG.entrenamiento.minimoPorArea;
-    var incluidos = entrenamiento.filter(entraAlModelo);
+    var incluidos = adultos.filter(entraAlModelo);
     var filas = AREAS.map(function (a) {
       var n = incluidos.filter(function (r) { return r.area === a; }).length;
       var pct = Math.min(100, Math.round(n / meta * 100));
@@ -168,48 +191,23 @@
         '<span class="' + (n >= meta ? "tag-ok" : "") + '" style="text-align:right">' + n + " / " + meta + "</span></div>";
     }).join("");
     var listas = AREAS.filter(function (a) { return incluidos.filter(function (r) { return r.area === a; }).length >= meta; }).length;
+    var grupo = function (g) {
+      var t = escolares.filter(function (r) { return r.grupo === g; });
+      return "<tr><td>" + g + "</td><td>" + t.length + "</td><td>" + t.filter(valido).length + "</td><td>" + t.filter(sospechoso).length + "</td><td>" + t.filter(function (r) { return r.excluido; }).length + "</td></tr>";
+    };
     return (
-      '<p class="admin-note">Casos de entrenamiento válidos por área (RF16). Cuentan los universitarios con satisfacción promedio ≥ ' + CFG.entrenamiento.satisfaccionMinima +
-      " y los egresados con satisfacción ≥ " + CFG.entrenamiento.satisfaccionMinima + " que trabajan en su área, siempre que su test sea válido. Meta: " + meta + " por área.</p>" +
+      '<h2 class="section-title">Adultos válidos por área (meta ' + meta + ")</h2>" +
+      '<p class="admin-note">Cuentan los universitarios de ' + CFG.entrenamiento.cicloMinimo + ".er ciclo a más con satisfacción promedio ≥ " + CFG.entrenamiento.satisfaccionMinima +
+      " y los profesionales con satisfacción ≥ " + CFG.entrenamiento.satisfaccionMinima + " que trabajan en su área, con test no sospechoso y no excluido.</p>" +
       '<div class="card" style="padding:24px"><div class="count-list">' + filas + "</div>" +
-      '<p class="admin-note" style="margin:18px 0 0">' + listas + " de 7 áreas llegaron a la meta · " + incluidos.length + " casos válidos en total · " + entrenamiento.length + " registros recibidos.</p></div>"
-    );
-  }
-
-  function renderImprimir() {
-    var preguntas = CHASIDE_DATA.questions.slice().sort(function (a, b) { return a.id - b.id; });
-    var items = preguntas.map(function (q) {
-      return '<div class="print-item"><span><span class="n">' + q.id + ".</span>" + esc(q.text) + '</span><span class="print-checks"><span>Sí ☐</span><span>No ☐</span></span></div>';
-    }).join("");
-    var clave = AREAS.map(function (a) {
-      var ints = preguntas.filter(function (q) { return q.area === a && q.scale === "interes"; }).map(function (q) { return q.id; });
-      var apts = preguntas.filter(function (q) { return q.area === a && q.scale === "aptitud"; }).map(function (q) { return q.id; });
-      return "<tr><td><b>" + a + "</b> · " + esc(NOM[a]) + "</td><td>" + ints.join(", ") + "</td><td>" + apts.join(", ") + "</td><td>" + (ints.length + apts.length) + "</td></tr>";
-    }).join("");
-    var carreras = AREAS.map(function (a) {
-      return "<tr><td><b>" + a + "</b> · " + esc(NOM[a]) + "</td><td>" + esc(Chaside.carrerasDeArea(a).join(", ")) + "</td></tr>";
-    }).join("");
-    return (
-      '<div class="admin-toolbar"><span>Material impreso para el grupo control (RF17)</span><button class="admin-btn" id="admin-print">🖨 Imprimir / Guardar PDF</button></div>' +
-      '<div class="print-sheet">' +
-      "<h2>Test de Orientación Vocacional CHASIDE</h2>" +
-      '<p class="sub">Código: ____________ · Fecha: ____________ · Hora de inicio: ________ · Hora de fin: ________</p>' +
-      '<p class="sub">Responde Sí o No marcando la casilla. No hay respuestas correctas ni incorrectas.</p>' +
-      items +
-      '<div class="page-break"></div>' +
-      "<h2>Clave de corrección CHASIDE</h2>" +
-      '<p class="sub">Cuenta las respuestas Sí de cada área. Puntaje máximo por área: ' + Chaside.MAX_POR_AREA + " (10 de interés + 4 de aptitud). Las áreas con mayor puntaje son las más representativas; si dos áreas empatan, se reportan ambas.</p>" +
-      '<table class="print-table"><thead><tr><th>Área</th><th>Ítems de interés</th><th>Ítems de aptitud</th><th>Máx.</th></tr></thead><tbody>' + clave + "</tbody></table>" +
-      "<h3>Hoja de puntaje</h3>" +
-      '<table class="print-table"><thead><tr>' + AREAS.map(function (a) { return "<th>" + a + "</th>"; }).join("") + "</tr></thead><tbody><tr>" + AREAS.map(function () { return "<td style=\"height:28px\"></td>"; }).join("") + "</tr></tbody></table>" +
-      "<h3>Carreras por área</h3>" +
-      '<table class="print-table"><thead><tr><th>Área</th><th>Carreras</th></tr></thead><tbody>' + carreras + "</tbody></table>" +
-      "</div>"
+      '<p class="admin-note" style="margin:18px 0 0">' + listas + " de 7 áreas llegaron a la meta · " + incluidos.length + " casos válidos · " + adultos.length + " registros.</p></div>" +
+      '<h2 class="section-title" style="margin-top:28px">Escolares por grupo</h2>' +
+      tabla(["Grupo", "Registros", "Válidos", "Sospechosos", "Excluidos"], grupo("EXP") + grupo("CTL"))
     );
   }
 
   function renderModelo() {
-    if (!modelo) return '<p class="admin-warn">No se pudo cargar ' + esc(CFG.modeloUrl) + ". Los escolares del grupo experimental verán solo la clave clásica.</p>";
+    if (!modelo) return '<p class="admin-warn">No se pudo cargar ' + esc(CFG.modeloUrl) + ". Las aulas EXP verán solo el resultado clásico.</p>";
     var sintetico = /sintetic/i.test(modelo.version) || modelo.datos === "sinteticos";
     var met = modelo.metricas || {};
     var filasMet = Object.keys(met).map(function (k) {
@@ -217,10 +215,10 @@
       return "<tr><td>" + esc(k) + "</td><td>" + (m.top3 != null ? (m.top3 * 100).toFixed(1) + "%" : "—") + "</td><td>" + (m.top1 != null ? (m.top1 * 100).toFixed(1) + "%" : "—") + "</td><td>" + (m.f1_macro != null ? m.f1_macro.toFixed(3) : "—") + "</td></tr>";
     }).join("");
     return (
-      (sintetico ? '<p class="admin-warn"><b>Modelo provisional entrenado con datos sintéticos.</b> Sirve para el modo Demo y las pruebas. Antes de aplicar el experimento (códigos EXP-) hay que entrenarlo con los datos reales de UNI y EGR y reemplazar modelo.json.</p>' : "") +
+      (sintetico ? '<p class="admin-warn"><b>Modelo provisional entrenado con datos sintéticos.</b> Sirve para el aula DEMO y las pruebas. Antes de abrir aulas EXP hay que entrenarlo con el CSV de adultos y reemplazar modelo.json.</p>' : "") +
       '<div class="card" style="padding:24px">' +
       '<p class="admin-note" style="margin:0">Versión <b>' + esc(modelo.version) + "</b> · " + esc(modelo.algoritmo || "") + " · entrenado el " + esc(modelo.entrenado || "—") +
-      " · " + esc(modelo.casos != null ? modelo.casos + " casos" : "") + " · áreas: " + esc(modelo.areas.join(", ")) + "</p>" +
+      " · " + esc(modelo.casos != null ? modelo.casos + " casos" : "") + " · áreas: " + esc((modelo.areas || []).join(", ")) + "</p>" +
       (filasMet ? '<h2 class="section-title" style="margin-top:20px">Comparación de modelos (validación cruzada de 5 pliegues)</h2>' +
         tabla(["Modelo", "Exactitud top-3", "Exactitud top-1", "F1 macro"], filasMet) : "") +
       "</div>"
@@ -233,25 +231,92 @@
   }
 
   function renderDashboard() {
-    var tabs = [["escolares", "Escolares"], ["entrenamiento", "Entrenamiento"], ["conteo", "Conteo por área"], ["imprimir", "Cuestionario impreso"], ["modelo", "Modelo"]];
-    var cuerpo = errorCarga ? '<p class="field-error" style="text-align:left">Error al cargar resultados: ' + esc(errorCarga) + "</p>"
+    var tabs = [["aulas", "Aulas"], ["escolares", "Escolares"], ["adultos", "Adultos"], ["conteos", "Conteos"], ["modelo", "Modelo"]];
+    var cuerpo = errorCarga ? '<p class="field-error" style="text-align:left">' + esc(errorCarga) + "</p>"
+      : tab === "aulas" ? renderAulas()
       : tab === "escolares" ? renderEscolares()
-      : tab === "entrenamiento" ? renderEntrenamiento()
-      : tab === "conteo" ? renderConteo()
-      : tab === "imprimir" ? renderImprimir()
+      : tab === "adultos" ? renderAdultos()
+      : tab === "conteos" ? renderConteos()
       : renderModelo();
     root.innerHTML =
       '<div class="page page-wide">' +
-      '<div class="top-row"><img class="brand-mark-img" src="img/logo.png" width="34" height="34" alt="Logo"><div class="brand-name">OrientaIA</div><div class="top-row-right"><span class="q-tag">PANEL ADMIN</span></div></div>' +
+      '<div class="top-row"><img class="brand-mark-img" src="img/logo.svg" width="34" height="34" alt="Logo"><div class="brand-name">OrientaIA</div><div class="top-row-right"><span class="q-tag">SUPERADMINISTRADOR</span></div></div>' +
       '<div class="divider"></div>' +
-      '<div class="admin-head"><div><p class="eyebrow" style="text-align:left">Panel del administrador</p><h1 class="title" style="text-align:left;font-size:26px">Resultados registrados</h1></div>' +
+      '<div class="admin-head"><div><p class="eyebrow" style="text-align:left">Panel del superadministrador</p><h1 class="title" style="text-align:left;font-size:26px">Test Vocacional CHASIDE</h1></div>' +
       '<div style="display:flex;gap:10px"><button class="admin-btn" id="admin-refresh">↻ Actualizar</button><button class="btn-secondary" style="width:auto;padding:0 20px;height:40px" id="admin-logout">Cerrar sesión</button></div></div>' +
       '<div class="admin-tabs">' + tabs.map(function (t) { return '<button class="admin-tab' + (t[0] === tab ? " is-active" : "") + '" data-tab="' + t[0] + '">' + t[1] + "</button>"; }).join("") + "</div>" +
       cuerpo +
       "</div>";
   }
 
-  // ---------- CSV (RF15) ----------
+  // ---------- acciones ----------
+  var ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";   // sin O/0, I/1 para que no se confundan
+  function codigoAleatorio() {
+    var s = "";
+    var bytes = new Uint32Array(4);
+    window.crypto.getRandomValues(bytes);
+    for (var i = 0; i < 4; i++) s += ALFABETO[bytes[i] % ALFABETO.length];
+    return s;
+  }
+
+  function crearAula() {
+    var colegio = document.getElementById("aula-colegio").value.trim().toUpperCase();
+    var grado = Number(document.getElementById("aula-grado").value);
+    var seccion = document.getElementById("aula-seccion").value.trim().toUpperCase();
+    var grupo = document.getElementById("aula-grupo").value;
+    if (!colegio) { mensaje = "Escribe el código del colegio (no su nombre)."; renderDashboard(); return; }
+    var intentar = function (n) {
+      var codigo = codigoAleatorio();
+      if (codigo === CFG.aulaDemo) return intentar(n);
+      var ref = db().collection("aulas").doc(codigo);
+      return ref.get().then(function (snap) {
+        if (snap.exists) { if (n > 5) throw new Error("No se pudo generar un código libre."); return intentar(n + 1); }
+        return ref.set({ colegio: colegio, grado: grado, seccion: seccion, grupo: grupo, activa: true, creada: new Date() }).then(function () { return codigo; });
+      });
+    };
+    intentar(0).then(function (codigo) {
+      mensaje = "Aula " + codigo + " creada (" + colegio + ", " + grado + ".° " + seccion + ", " + grupo + "). Copia su enlace de la tabla.";
+      cargar();
+    }).catch(function (err) { mensaje = "No se pudo crear el aula: " + (err.message || err); renderDashboard(); });
+  }
+
+  function toggleAula(codigo) {
+    var a = aulas.filter(function (x) { return x.id === codigo; })[0];
+    if (!a) return;
+    db().collection("aulas").doc(codigo).update({ activa: !a.activa }).then(cargar)
+      .catch(function (err) { alert("No se pudo actualizar el aula: " + err.message); });
+  }
+
+  function toggleAdultos() {
+    var abierto = !estado.adultosAbierto;
+    if (!abierto && !confirm("¿Cerrar el enlace de adultos? Ya no se aceptarán nuevas respuestas de universitarios ni profesionales.")) return;
+    db().collection("contadores").doc("estado").set({ adultosAbierto: abierto }, { merge: true }).then(cargar)
+      .catch(function (err) { alert("No se pudo cambiar el estado: " + err.message); });
+  }
+
+  function lista(col) { return col === "escolares" ? escolares : adultos; }
+
+  // RF18: marcar o desmarcar como excluido sin borrar
+  function toggleExcluir(col, id) {
+    var r = lista(col).filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    db().collection(col).doc(id).update({ excluido: !r.excluido, excluidoEn: new Date() }).then(cargar)
+      .catch(function (err) { alert("No se pudo actualizar " + id + ": " + err.message); });
+  }
+
+  // RF20: borrar el registro de un número cuando la persona lo pida
+  function borrar(col, id) {
+    if (prompt("Para borrar definitivamente el registro, escribe su número (" + id + "):") !== id) return;
+    db().collection(col).doc(id).delete().then(cargar)
+      .catch(function (err) { alert("No se pudo borrar " + id + ": " + err.message); });
+  }
+
+  function copiar(texto) {
+    if (navigator.clipboard) navigator.clipboard.writeText(texto).then(function () { mensaje = "Enlace copiado: " + texto; renderDashboard(); });
+    else prompt("Copia el enlace:", texto);
+  }
+
+  // ---------- CSV (RF19) ----------
   function csvCell(v) {
     if (typeof v === "number" && isFinite(v)) return String(v);
     if (typeof v === "boolean") return v ? "1" : "0";
@@ -268,81 +333,77 @@
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
-  function chasideCols(r) {
-    var c = r.chaside || {};
-    return arr(c.respuestas, N_ITEMS).concat(arr(c.tiemposMs, N_ITEMS));
-  }
+  function chasideCols(r) { var c = r.chaside || {}; return arr(c.respuestas, N_ITEMS).concat(arr(c.tiemposMs, N_ITEMS)); }
+  function calidadCols(r) { return [sospechoso(r), r.calidad ? r.calidad.motivo || "" : "", !!r.excluido]; }
 
   function csvEscolares() {
     var nPre = ESC.claridad.items.length, nAd = ESC.adecuacion.items.length, nTam = ESC.tam.items.length, nSus = ESC.sus.items.length;
-    var cab = ["codigo", "grupo", "fecha_asentimiento"]
+    var cab = ["numero", "aula", "colegio", "grado", "grupo", "sexo", "fecha_asentimiento"]
       .concat(rango(nPre, "pre_"), ["pre_total"], rango(nPre, "post_"), ["post_total"])
-      .concat(["inicio", "fin", "duracion_seg"])
-      .concat(rango(N_ITEMS, "r_"), rango(N_ITEMS, "t_ms_"))
+      .concat(["inicio", "fin", "duracion_seg"], rango(N_ITEMS, "r_"), rango(N_ITEMS, "t_ms_"))
       .concat(AREAS.map(function (a) { return "clave_" + a; }))
       .concat(["modelo_version"], AREAS.map(function (a) { return "prob_" + a; }), ["top1", "top2", "top3", "explicacion_items"])
-      .concat(["valido", "motivo"])
+      .concat(["sospechoso", "motivo", "excluido"])
       .concat(rango(nAd, "adec_"), rango(nTam, "tam_"), rango(nSus, "sus_"), ["sus_puntaje", "completado"]);
     var filas = escolares.map(function (r) {
       var res = r.resultado || {}, clave = res.clave || {}, p = probsDe(res.modelo) || {}, top = top3Modelo(r);
-      var pre = arr(r.pretest, nPre), post = arr(r.postest, nPre);
-      return [r.id, r.grupo, fmtFecha(fechaDe(r))]
-        .concat(pre, [r.pretest ? suma(r.pretest) : ""], post, [r.postest ? suma(r.postest) : ""])
-        .concat([fmtFecha(r.inicio), fmtFecha(r.fin), duracionSeg(r)])
-        .concat(chasideCols(r))
+      return [r.id, r.aula, r.colegio, r.grado, r.grupo, r.sexo || "", fmtFecha(r.asentimiento && r.asentimiento.fecha)]
+        .concat(arr(r.pretest, nPre), [r.pretest ? suma(r.pretest) : ""], arr(r.postest, nPre), [r.postest ? suma(r.postest) : ""])
+        .concat([fmtFecha(r.inicio), fmtFecha(r.fin), duracionSeg(r)], chasideCols(r))
         .concat(AREAS.map(function (a) { return clave[a] != null ? clave[a] : ""; }))
         .concat([res.modelo ? res.modelo.v : ""], AREAS.map(function (a) { return p[a] != null ? p[a] : ""; }), [top[0] || "", top[1] || "", top[2] || "", (res.explicacion || []).join("|")])
-        .concat([r.calidad ? r.calidad.valido : "", r.calidad ? r.calidad.motivo : ""])
+        .concat(calidadCols(r))
         .concat(arr(r.adecuacion, nAd), arr(r.tam, nTam), arr(r.sus, nSus), [puntajeSus(r.sus) == null ? "" : puntajeSus(r.sus), fmtFecha(r.completado)]);
     });
     descargarCsv("escolares-chaside", cab, filas);
   }
 
-  function csvEntrenamiento() {
+  function csvAdultos() {
     var nSat = ESC.satisfaccionCarrera.items.length;
-    var cab = ["codigo", "tipo", "fecha_consentimiento", "carrera", "area", "ciclo", "anos_egresado", "trabaja_en_area"]
+    var cab = ["numero", "tipo", "fecha_consentimiento", "carrera", "area", "universidad", "ciclo", "anos_experiencia", "trabaja_en_area"]
       .concat(rango(nSat, "sat_"), ["sat_promedio"])
-      .concat(rango(N_ITEMS, "r_"), rango(N_ITEMS, "t_ms_"))
-      .concat(["valido", "motivo", "incluido", "completado"]);
-    var filas = entrenamiento.map(function (r) {
+      .concat(["inicio", "fin", "duracion_seg"], rango(N_ITEMS, "r_"), rango(N_ITEMS, "t_ms_"))
+      .concat(["sospechoso", "motivo", "excluido", "incluido", "completado"]);
+    var filas = adultos.map(function (r) {
       var sat = promedio(r.satisfaccion);
-      return [r.id, r.tipo, fmtFecha(fechaDe(r)), r.carrera || "", r.area || "", r.ciclo != null ? r.ciclo : "", r.anosEgresado != null ? r.anosEgresado : "", typeof r.trabajaEnArea === "boolean" ? r.trabajaEnArea : ""]
+      return [r.id, r.tipo, fmtFecha(r.consentimiento && r.consentimiento.fecha), r.carrera || "", r.area || "", r.universidad || "", r.ciclo != null ? r.ciclo : "",
+        r.anosExperiencia != null ? r.anosExperiencia : "", typeof r.trabajaEnArea === "boolean" ? r.trabajaEnArea : ""]
         .concat(arr(r.satisfaccion, nSat), [sat == null ? "" : Math.round(sat * 100) / 100])
-        .concat(chasideCols(r))
-        .concat([r.calidad ? r.calidad.valido : "", r.calidad ? r.calidad.motivo : "", entraAlModelo(r), fmtFecha(r.completado)]);
+        .concat([fmtFecha(r.inicio), fmtFecha(r.fin), duracionSeg(r)], chasideCols(r))
+        .concat(calidadCols(r), [entraAlModelo(r), fmtFecha(r.completado)]);
     });
-    descargarCsv("entrenamiento-chaside", cab, filas);
+    descargarCsv("adultos-chaside", cab, filas);
   }
 
   function descargarPdf(id) {
     var r = escolares.filter(function (x) { return x.id === id; })[0];
     if (!r || !r.resultado) return;
-    ResultadoPDF.generar({
-      codigo: r.id,
-      fecha: aFecha(r.fin) || fechaDe(r) || new Date(),
-      clave: r.resultado.clave || {},
-      modelo: r.resultado.modelo || null,
-      explicacion: r.resultado.explicacion || []
-    });
+    ResultadoPDF.generar({ codigo: r.id, fecha: aFecha(r.fin) || new Date(), clave: r.resultado.clave || {}, modelo: r.resultado.modelo || null, explicacion: r.resultado.explicacion || [] });
   }
 
   // ---------- eventos ----------
   root.addEventListener("click", function (e) {
     var el = e.target.closest("button");
     if (!el) return;
+    var v;
     if (el.id === "admin-logout") auth().signOut();
     else if (el.id === "admin-refresh") cargar();
-    else if (el.id === "admin-print") window.print();
-    else if (el.getAttribute("data-tab")) { tab = el.getAttribute("data-tab"); renderDashboard(); }
+    else if (el.id === "aula-crear") crearAula();
+    else if (el.id === "adultos-toggle") toggleAdultos();
+    else if ((v = el.getAttribute("data-tab"))) { tab = v; mensaje = ""; renderDashboard(); }
+    else if ((v = el.getAttribute("data-aula-toggle"))) toggleAula(v);
+    else if ((v = el.getAttribute("data-copiar"))) copiar(v);
+    else if ((v = el.getAttribute("data-excluir"))) toggleExcluir(v.split("|")[0], v.split("|")[1]);
+    else if ((v = el.getAttribute("data-borrar"))) borrar(v.split("|")[0], v.split("|")[1]);
+    else if ((v = el.getAttribute("data-pdf"))) descargarPdf(v);
     else if (el.getAttribute("data-csv") === "escolares") csvEscolares();
-    else if (el.getAttribute("data-csv") === "entrenamiento") csvEntrenamiento();
-    else if (el.getAttribute("data-pdf")) descargarPdf(el.getAttribute("data-pdf"));
+    else if (el.getAttribute("data-csv") === "adultos") csvAdultos();
   });
 
   function leer(nombre) {
     return db().collection(nombre).get().then(function (snap) {
       return snap.docs.map(function (d) { return Object.assign({}, d.data(), { id: d.id }); })
-        .sort(function (a, b) { return (fechaDe(b) || 0) - (fechaDe(a) || 0); });
+        .sort(function (a, b) { return b.id < a.id ? -1 : b.id > a.id ? 1 : 0; });
     });
   }
 
@@ -351,18 +412,22 @@
     errorCarga = "";
     renderDashboard();
     Promise.all([
-      leer("participantes"),
-      leer("entrenamiento"),
+      leer("aulas"), leer("escolares"), leer("adultos"),
+      db().collection("contadores").doc("estado").get(),
       fetch(CFG.modeloUrl, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
     ]).then(function (res) {
-      escolares = res[0];
-      entrenamiento = res[1];
-      modelo = res[2];
+      aulas = res[0].sort(function (a, b) { return (aFecha(b.creada) || 0) - (aFecha(a.creada) || 0); });
+      escolares = res[1];
+      adultos = res[2];
+      estado = res[3].exists ? Object.assign({ adultosAbierto: true }, res[3].data()) : { adultosAbierto: true };
+      modelo = res[4];
       cargando = false;
       renderDashboard();
     }).catch(function (err) {
       cargando = false;
-      errorCarga = err.message || String(err);
+      errorCarga = err && err.code === "permission-denied"
+        ? "Esta cuenta no tiene permiso para leer los datos. Solo " + CFG.correoAdmin + " está autorizada."
+        : "Error al cargar: " + (err.message || err);
       renderDashboard();
     });
   }
@@ -370,7 +435,12 @@
   // ---------- inicio ----------
   root.innerHTML = '<div class="page"><p class="subtitle" style="margin-top:60px">Cargando…</p></div>';
   auth().onAuthStateChanged(function (user) {
-    if (user) cargar();
-    else renderLogin();
+    if (!user) { renderLogin(); return; }
+    if ((user.email || "").toLowerCase() !== CFG.correoAdmin) {
+      loginError = "La cuenta " + user.email + " no está autorizada para este panel.";
+      auth().signOut();
+      return;
+    }
+    cargar();
   });
 })();

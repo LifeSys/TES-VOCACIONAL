@@ -4,8 +4,9 @@ Entrenamiento del modelo de ML del sistema (sección "Módulo de machine learnin
 
   Entrada (X): las 98 respuestas del CHASIDE (1 = Sí, 0 = No)  -> columnas r_1 .. r_98
   Etiqueta (y): área CHASIDE de la carrera (C, H, A, S, I, D, E) -> columna area
-  Casos que entran: UNI con satisfacción promedio >= 4; EGR con satisfacción >= 4 y que trabaja
-                    en su área; ambos con test válido.
+  Casos que entran: universitarios de 3.er ciclo a más con satisfacción promedio >= 4;
+                    profesionales con satisfacción >= 4 y que trabajan en su área; en ambos casos
+                    test no sospechoso y no excluido en el panel.
   Mínimo: 50 casos por área; un área con menos queda fuera del modelo (solo clave clásica).
   Modelos comparados: clave CHASIDE (línea base), regresión logística, Naive Bayes,
                       Random Forest, SVM. Validación: 5 pliegues estratificados, exactitud top-3
@@ -13,8 +14,8 @@ Entrenamiento del modelo de ML del sistema (sección "Módulo de machine learnin
   Modelo desplegado: regresión logística -> modelo.json (la web lo lee con js/ml-engine.js).
 
 Uso (Google Colab o local, con pandas, numpy y scikit-learn):
-  python entrenar_modelo.py entrenamiento-chaside-AAAA-MM-DD.csv --version 1.0
-      CSV exportado del panel admin (pestaña Entrenamiento). Escribe modelo.json y el reporte.
+  python entrenar_modelo.py adultos-chaside-AAAA-MM-DD.csv --version 1.0
+      CSV de adultos exportado del panel (pestaña Adultos). Escribe modelo.json y el reporte.
   python entrenar_modelo.py --sintetico --version 0.1-sintetico
       Genera datos SINTÉTICOS solo para probar el sistema (modo Demo). No sirve para la tesis.
 
@@ -71,20 +72,22 @@ def es_si(col):
     return (num == 1) | col.astype(str).str.strip().str.lower().isin(["true", "si", "sí"])
 
 
-def datos_reales(csv, minimo_sat):
+def datos_reales(csv, minimo_sat, ciclo_minimo):
     df = pd.read_csv(csv, encoding="utf-8-sig")
-    faltan = [c for c in COLS + ["tipo", "area", "valido", "sat_promedio", "trabaja_en_area"] if c not in df.columns]
+    necesarias = COLS + ["tipo", "area", "sospechoso", "excluido", "sat_promedio", "ciclo", "trabaja_en_area"]
+    faltan = [c for c in necesarias if c not in df.columns]
     if faltan:
-        sys.exit(f"Al CSV le faltan columnas: {faltan[:6]}... ¿Es el CSV de la pestaña Entrenamiento del panel?")
+        sys.exit(f"Al CSV le faltan columnas: {faltan[:6]}... ¿Es el CSV de la pestaña Adultos del panel?")
     df = df[df["area"].isin(AREAS)]
-    valido = es_si(df["valido"])
+    limpio = ~es_si(df["sospechoso"]) & ~es_si(df["excluido"])
     sat_ok = pd.to_numeric(df["sat_promedio"], errors="coerce") >= minimo_sat
-    trabaja = es_si(df["trabaja_en_area"])
-    entra = valido & sat_ok & ((df["tipo"] == "UNI") | ((df["tipo"] == "EGR") & trabaja))
-    df = df[entra].dropna(subset=COLS)
+    univ = (df["tipo"] == "universitario") & (pd.to_numeric(df["ciclo"], errors="coerce") >= ciclo_minimo)
+    prof = (df["tipo"] == "profesional") & es_si(df["trabaja_en_area"])
+    df = df[limpio & sat_ok & (univ | prof)].dropna(subset=COLS)
     X = df[COLS].astype(int).to_numpy()
     y = df["area"].to_numpy()
-    print(f"Registros en el CSV que cumplen los criterios de entrada: {len(df)}")
+    print(f"Registros del CSV que cumplen los criterios de entrada: {len(df)} "
+          f"(universitarios {int((df['tipo'] == 'universitario').sum())}, profesionales {int((df['tipo'] == 'profesional').sum())})")
     return X, y
 
 
@@ -150,11 +153,12 @@ def comparar(X, y, clases, area_item):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("csv", nargs="?", help="CSV de entrenamiento exportado del panel admin")
+    ap.add_argument("csv", nargs="?", help="CSV de adultos exportado del panel")
     ap.add_argument("--sintetico", action="store_true", help="usar datos sintéticos (solo pruebas / demo)")
     ap.add_argument("--version", required=True, help='versión del modelo, p. ej. "1.0"')
     ap.add_argument("--minimo", type=int, default=50, help="casos mínimos por área (defecto 50)")
     ap.add_argument("--satisfaccion", type=float, default=4.0, help="satisfacción promedio mínima (defecto 4)")
+    ap.add_argument("--ciclo", type=int, default=3, help="ciclo mínimo de los universitarios (defecto 3)")
     ap.add_argument("--salida", default=os.path.join(RAIZ, "modelo.json"), help="ruta de modelo.json")
     args = ap.parse_args()
     if not args.csv and not args.sintetico:
@@ -165,7 +169,7 @@ def main():
         X, y = datos_sinteticos(area_item)
         origen = "sinteticos"
     else:
-        X, y = datos_reales(args.csv, args.satisfaccion)
+        X, y = datos_reales(args.csv, args.satisfaccion, args.ciclo)
         origen = "reales"
 
     conteo = {a: int((y == a).sum()) for a in AREAS}

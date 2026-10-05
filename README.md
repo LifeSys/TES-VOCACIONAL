@@ -2,65 +2,77 @@
 
 Sistema web de orientación vocacional basado en el instrumento **CHASIDE** (98 ítems, 7 áreas: C Administrativas, H Humanísticas, A Artísticas, S Salud, I Ingeniería, D Defensa, E Ciencias Exactas y Agrarias) con un modelo de **regresión logística** que calcula la probabilidad de cada área.
 
-Sitio estático (HTML/CSS/JS puro, sin build step) publicado en **GitHub Pages**, con los datos en **Firebase** (plan gratuito). Implementa el documento *Requerimientos del sistema — Test Vocacional CHASIDE con ML*.
+Sitio estático (HTML/CSS/JS puro, sin build step) en **GitHub Pages**, con los datos en **Firebase** (plan gratuito, servidores en São Paulo). Implementa el documento *Requerimientos del sistema — Test Vocacional CHASIDE con ML* (arquitectura de tres enlaces).
 
-## Un sistema, cuatro modos
+## Un sistema, tres enlaces
 
-El código que se ingresa al inicio decide el flujo. Formato: prefijo + 3 dígitos (`EXP-001`). Cada código se puede usar **una sola vez**.
+| Enlace | Para quién | Flujo |
+|---|---|---|
+| `escolar.html?aula=K7Q2` | Escolares de 4.° y 5.°, en aula | Política para menores + asentimiento → sexo (opcional) → preprueba → CHASIDE → resultado → posprueba → adecuación → (solo EXP: TAM → SUS) → número `ESC-` + PDF |
+| `adultos.html` | Universitarios y profesionales (no compartir en colegios) | Política para adultos + consentimiento → ¿18 o más? → universitario / profesional → datos de carrera → satisfacción → CHASIDE → número `UNI-` / `PRO-` |
+| `admin.html` | Superadministrador (johannsebastian789@gmail.com) | Login → aulas → tablas → conteos → excluir / borrar → CSV |
 
-| Modo | Código | Flujo | Colección |
+- **El aula decide el grupo**: las aulas EXP ven el resultado clásico + el modelo con explicación; las CTL solo el resultado clásico.
+- **Autonumeración**: nadie escribe códigos. Al **terminar**, una transacción asigna el siguiente número (`ESC-0001`, `UNI-0001`, `PRO-0001`) y guarda todo de una vez. **Si alguien abandona a la mitad no se guarda nada** ni se gasta un número.
+- Si se recarga la página, se puede continuar en el mismo dispositivo. Si al final no hay internet, las respuestas quedan en el dispositivo hasta presionar *Reintentar*.
+- **Aula de prueba** para la sustentación: `escolar.html?aula=DEMO` (flujo experimental completo, no guarda nada).
+- `index.html` no enlaza a ningún test: solo pide usar el enlace recibido.
+
+## Datos en Firestore (4 colecciones)
+
+| Colección | Qué guarda | Escribe | Lee |
 |---|---|---|---|
-| Universitario | `UNI-001` | Consentimiento → carrera y ciclo → satisfacción con la carrera (4) → CHASIDE → gracias | `entrenamiento` |
-| Egresado | `EGR-001` | Consentimiento → carrera, años de egresado, ¿trabaja en su área? → satisfacción con la profesión (4) → CHASIDE → gracias | `entrenamiento` |
-| Experimental | `EXP-001` | Asentimiento → preprueba (10) → CHASIDE → resultado con ML y explicación → posprueba (10) → adecuación (3) → TAM (13) → SUS (10) → gracias + PDF | `participantes` |
-| Control | `CTL-001` | Asentimiento → preprueba → test en papel (marca inicio y fin) → posprueba → adecuación → gracias | `participantes` |
-| Demo | `DEMO` | Igual que Experimental, **sin guardar nada** (sustentación, pruebas) | — |
+| `contadores` | Último número de `ESC`, `UNI`, `PRO`; `estado.adultosAbierto` | La web (+1 en transacción); el admin (estado) | La web (solo para numerar) |
+| `aulas` | Colegio (código), grado, sección, grupo EXP/CTL, activa | Superadministrador | La web (una por código) y el admin |
+| `escolares` | Aula, sexo, asentimiento, pre/post, 98 respuestas + tiempos, inicio/fin, resultado, calidad, adecuación, TAM, SUS | La web, una vez al terminar | Solo el admin |
+| `adultos` | Tipo, consentimiento, 18+, carrera y área, ciclo/universidad o años de experiencia/trabaja en su área, satisfacción, 98 respuestas + tiempos, calidad | La web, una vez al terminar | Solo el admin |
 
-Si se recarga la página a mitad del test, al volver a ingresar el mismo código (en el mismo dispositivo) continúa donde se quedó.
+Nunca se guarda nombre, DNI, correo, teléfono, fecha de nacimiento, IP, ubicación ni el nombre del colegio en texto libre.
 
 ## Estructura
 
 ```
-index.html                 entrada del sitio (participantes)
-admin.html                 panel administrativo (privado, sin enlace visible)
+index.html                 página neutra (no enlaza a los tests)
+escolar.html               enlace de escolares (?aula=…)
+adultos.html               enlace de universitarios y profesionales
+admin.html                 panel del superadministrador
+privacidad-menores.html    política para escolares
+privacidad-adultos.html    política para adultos
 modelo.json                modelo de ML desplegado (se reemplaza al reentrenar, RNF06)
-privacidad.html            política de privacidad (enlazada desde el pie y el consentimiento)
 css/styles.css             estilos
-js/config.js               configuración: formato de códigos, cierre de la recolección UNI/EGR, calidad de datos
-js/instrumentos.js         textos de consentimiento/asentimiento y escalas Likert (editar aquí)
-js/data.js                 banco de 98 ítems CHASIDE (en tuteo) + catálogo cerrado de carreras por área
-js/chaside.js              clave CHASIDE, ranking con empates y control de calidad (RF09, RF10)
-js/ml-engine.js            inferencia del modelo en el navegador (RF11, RF12)
-js/pdf-resultado.js        PDF de resultados (estudiante y panel admin)
-js/app.js                  flujo del participante
-js/admin.js                panel admin (RF14-RF17)
+js/config.js               correo del admin, prefijos, aula DEMO, calidad de datos, criterios del modelo
+js/instrumentos.js         textos de asentimiento/consentimiento y escalas Likert (editar aquí)
+js/data.js                 98 ítems CHASIDE (en tuteo) + catálogo cerrado de carreras por área
+js/chaside.js              clave CHASIDE, ranking con empates y control de calidad
+js/ml-engine.js            inferencia del modelo en el navegador
+js/pdf-resultado.js        PDF de resultados (escolar y panel)
+js/participante.js         flujo de escolar.html y adultos.html
+js/admin.js                panel del superadministrador
 js/firebase-config.js      claves públicas del proyecto Firebase
-firestore.rules            reglas de seguridad (RNF01)
+firestore.rules            reglas de seguridad
 ml/                        entrenamiento en Colab y verificación (ver ml/README.md)
 ```
 
-## Antes de usarlo con participantes
+## Panel del superadministrador
 
-1. **Instrumentos**: las escalas marcadas `borrador: true` en [`js/instrumentos.js`](js/instrumentos.js) (claridad vocacional, satisfacción, adecuación) y los textos de consentimiento son una primera redacción. Reemplázalos por la versión aprobada en el juicio de expertos, sin cambiar la cantidad de ítems.
-2. **Catálogo de carreras**: la lista cerrada de `js/data.js` decide el área de cada universitario/egresado. Revisa que estén las carreras de la UPN y de las escuelas policiales/militares.
-3. **Modelo**: `modelo.json` es provisional (versión `0.1-sintetico`, datos simulados) y solo sirve para el modo Demo. Entrénalo con los datos reales de UNI/EGR antes de aplicar códigos EXP- (ver `ml/README.md`). El panel admin muestra un aviso mientras sea sintético.
-4. **Cerrar la recolección** antes del cuasi experimento: en `js/config.js`, `recoleccionEntrenamientoAbierta: false`.
-
-## Panel administrativo
-
-`admin.html` (solo por URL directa, login con correo y contraseña de Firebase Authentication):
-
-- **Escolares**: EXP y CTL con avance, top 3 del modelo, calidad, tiempo y PDF individual. **Exportar CSV de escolares** (pre/post, 98 respuestas y tiempos, clave, probabilidades, explicación, adecuación, TAM, SUS y su puntaje 0-100).
-- **Entrenamiento**: UNI y EGR con carrera, área, satisfacción, calidad y si entra al modelo. **Exportar CSV de entrenamiento** (con columna `tipo`).
-- **Conteo por área**: casos válidos por área frente a la meta de 50 (RF16).
-- **Cuestionario impreso**: las 98 preguntas en blanco, la clave de corrección y la tabla de carreras para el grupo control (RF17).
+- **Aulas**: crear (colegio, grado, sección, grupo), copiar su enlace y cerrarla al terminar la sesión.
+- **Escolares**: tabla con resultado, calidad y tiempo; PDF; excluir / incluir; borrar; **CSV de escolares** para SPSS.
+- **Adultos**: tabla con carrera, área, satisfacción y si entra al modelo; excluir / incluir; borrar; abrir o cerrar el enlace de adultos; **CSV de adultos** para entrenar.
+- **Conteos**: adultos válidos por área (meta 50) y escolares por grupo.
 - **Modelo**: versión desplegada y comparación de modelos.
 
-## Firebase
+## Antes de usarlo con participantes
 
-- Reglas: `firebase deploy --only firestore:rules --account johannsebastian789@gmail.com` (o pegar `firestore.rules` en la consola → Firestore → Reglas → Publicar).
-- Recomendado: Authentication → Settings → User actions → desmarcar **Enable create (sign-up)**, para que nadie pueda crearse una cuenta con la clave pública y leer los resultados.
-- Las claves de `js/firebase-config.js` son públicas por diseño; la seguridad la dan las reglas.
+1. **Instrumentos**: reemplazar los textos marcados `borrador` en [`js/instrumentos.js`](js/instrumentos.js) por la versión del juicio de expertos, sin cambiar la cantidad de ítems.
+2. **Catálogo de carreras** (`js/data.js`): revisar que estén las carreras de la UPN y de las escuelas policiales y militares.
+3. **Modelo**: `modelo.json` es provisional (`0.1-sintetico`). Entrenarlo con el CSV de adultos antes de abrir aulas EXP (ver `ml/README.md`) y luego cerrar el enlace de adultos desde el panel.
+4. **Firebase**: Authentication → Settings → User actions → desmarcar **Enable create (sign-up)**.
+
+## Publicar las reglas
+
+```bash
+firebase deploy --only firestore:rules --account johannsebastian789@gmail.com
+```
 
 ## Correr localmente
 
@@ -68,4 +80,4 @@ ml/                        entrenamiento en Colab y verificación (ver ml/README
 python -m http.server 8000
 ```
 
-Abrir `http://localhost:8000/` y usar el código `DEMO` para probar sin guardar datos.
+Abrir `http://localhost:8000/escolar.html?aula=DEMO`.

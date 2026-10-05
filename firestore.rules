@@ -3,48 +3,99 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // RNF01 — Seguridad.
-    //  - El ID de cada documento es el código del participante (EXP-001, UNI-001, ...), así un
-    //    código no puede registrarse dos veces: crear sobre un código existente es una
-    //    actualización, y las actualizaciones no pueden tocar campos que ya tienen valor.
-    //  - Los participantes no inician sesión (no se pide cuenta a menores de edad): pueden
-    //    CREAR su registro y luego AGREGAR campos vacíos por etapas, nunca sobrescribir.
-    //  - Leer, listar y borrar solo con login (panel administrativo, Firebase Authentication).
+    //  - Los participantes no inician sesión. Al TERMINAR el test, la web guarda su registro
+    //    completo en una sola transacción junto con el contador: el ID del registro debe ser
+    //    exactamente el siguiente número (ESC-0001, UNI-0001, PRO-0001). Nadie elige su número
+    //    ni puede escribir sobre el registro de otra persona.
+    //  - Leer, excluir y borrar: solo el superadministrador (correo autorizado).
 
-    // Solo se agregan campos nuevos de la lista permitida; ninguno que ya exista cambia.
-    function soloCamposNuevos(permitidos) {
-      let cambiados = request.resource.data.diff(resource.data).affectedKeys();
-      return cambiados.hasOnly(permitidos) && !cambiados.hasAny(resource.data.keys());
+    function esAdmin() {
+      return request.auth != null && request.auth.token.email == 'johannsebastian789@gmail.com';
     }
 
-    function prefijo(codigo) {
-      return codigo.split('-')[0];
+    function ruta(coleccion, id) {
+      return /databases/$(database)/documents/$(coleccion)/$(id);
     }
 
-    // Escolares: grupo experimental (EXP) y control (CTL)
-    match /participantes/{codigo} {
-      allow create: if codigo.matches('^(EXP|CTL)-[0-9]{3}$')
-        && request.resource.data.keys().hasOnly(['grupo', 'asentimiento'])
-        && request.resource.data.grupo == prefijo(codigo)
-        && request.resource.data.asentimiento.acepto == true;
-      allow update: if soloCamposNuevos(['pretest', 'inicio', 'chaside', 'fin', 'resultado', 'calidad',
-                                         'postest', 'adecuacion', 'tam', 'sus', 'completado']);
-      allow read, delete: if request.auth != null;
+    function pad4(n) {
+      return n < 10 ? '000' + string(n) : (n < 100 ? '00' + string(n) : (n < 1000 ? '0' + string(n) : string(n)));
     }
 
-    // Datos de entrenamiento: universitarios (UNI) y egresados (EGR)
-    match /entrenamiento/{codigo} {
-      allow create: if codigo.matches('^(UNI|EGR)-[0-9]{3}$')
-        && request.resource.data.keys().hasOnly(['tipo', 'consentimiento'])
-        && request.resource.data.tipo == prefijo(codigo)
-        && request.resource.data.consentimiento.acepto == true;
-      allow update: if soloCamposNuevos(['carrera', 'area', 'ciclo', 'anosEgresado', 'trabajaEnArea',
-                                         'satisfaccion', 'chaside', 'calidad', 'completado']);
-      allow read, delete: if request.auth != null;
+    function coleccionDe(prefijo) {
+      return prefijo == 'ESC' ? 'escolares' : 'adultos';
     }
 
-    // Registros de la versión anterior del sistema: solo lectura/borrado para el administrador.
-    match /resultados/{docId} {
-      allow read, delete: if request.auth != null;
+    function contadorAntes(prefijo) {
+      return exists(ruta('contadores', prefijo)) ? get(ruta('contadores', prefijo)).data.n : 0;
     }
+
+    // El registro lleva el número contador+1 y el contador sube en la misma transacción (RF04).
+    function numeroValido(prefijo, id) {
+      let despues = getAfter(ruta('contadores', prefijo)).data.n;
+      return despues == contadorAntes(prefijo) + 1 && id == prefijo + '-' + pad4(despues);
+    }
+
+    // Admin: solo puede marcar o desmarcar un registro como excluido (RF18), nunca cambiar respuestas.
+    function soloExclusion() {
+      return esAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['excluido', 'excluidoEn']);
+    }
+
+    // ---------- contadores: último número usado y estado del enlace de adultos ----------
+    match /contadores/{doc} {
+      allow get: if true;
+      allow list: if esAdmin();
+      allow create: if doc in ['ESC', 'UNI', 'PRO']
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n == 1
+        && existsAfter(ruta(coleccionDe(doc), doc + '-' + pad4(1)));
+      allow update: if doc in ['ESC', 'UNI', 'PRO']
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n == resource.data.n + 1
+        && existsAfter(ruta(coleccionDe(doc), doc + '-' + pad4(request.resource.data.n)));
+      allow write: if doc == 'estado' && esAdmin();
+    }
+
+    // ---------- aulas: las crea y cierra el superadministrador (RF16) ----------
+    match /aulas/{codigo} {
+      allow get: if true;     // la web comprueba que el aula exista y esté activa (RF01)
+      allow list, create, update, delete: if esAdmin();
+    }
+
+    // ---------- escolares (ESC-) ----------
+    match /escolares/{id} {
+      allow create: if numeroValido('ESC', id)
+        && request.resource.data.keys().hasOnly(['aula', 'colegio', 'grado', 'grupo', 'sexo', 'asentimiento',
+             'pretest', 'postest', 'adecuacion', 'tam', 'sus', 'resultado', 'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.keys().hasAll(['aula', 'grupo', 'asentimiento', 'pretest', 'postest', 'adecuacion',
+             'resultado', 'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.asentimiento.acepto == true
+        && get(ruta('aulas', request.resource.data.aula)).data.activa == true
+        && request.resource.data.grupo == get(ruta('aulas', request.resource.data.aula)).data.grupo
+        && request.resource.data.colegio == get(ruta('aulas', request.resource.data.aula)).data.colegio
+        && request.resource.data.grado == get(ruta('aulas', request.resource.data.aula)).data.grado
+        && (request.resource.data.grupo == 'EXP' || !request.resource.data.keys().hasAny(['tam', 'sus']));
+      allow update: if soloExclusion();
+      allow read, delete: if esAdmin();
+    }
+
+    // ---------- adultos (UNI- universitarios, PRO- profesionales) ----------
+    match /adultos/{id} {
+      allow create: if (request.resource.data.tipo == 'universitario' ? numeroValido('UNI', id)
+                        : (request.resource.data.tipo == 'profesional' && numeroValido('PRO', id)))
+        && request.resource.data.keys().hasOnly(['tipo', 'consentimiento', 'mayorDeEdad', 'carrera', 'area', 'ciclo',
+             'universidad', 'anosExperiencia', 'trabajaEnArea', 'satisfaccion', 'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.keys().hasAll(['tipo', 'consentimiento', 'mayorDeEdad', 'carrera', 'area', 'satisfaccion',
+             'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.consentimiento.acepto == true
+        && request.resource.data.mayorDeEdad == true
+        && (!exists(ruta('contadores', 'estado')) || get(ruta('contadores', 'estado')).data.adultosAbierto != false);
+      allow update: if soloExclusion();
+      allow read, delete: if esAdmin();
+    }
+
+    // Colecciones de versiones anteriores del sistema: solo el administrador puede verlas o borrarlas.
+    match /participantes/{id} { allow read, delete: if esAdmin(); }
+    match /entrenamiento/{id} { allow read, delete: if esAdmin(); }
+    match /resultados/{id} { allow read, delete: if esAdmin(); }
   }
 }

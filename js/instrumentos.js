@@ -8,26 +8,29 @@
 const INSTRUMENTOS = {
   likert: ["Totalmente en desacuerdo", "En desacuerdo", "Ni de acuerdo ni en desacuerdo", "De acuerdo", "Totalmente de acuerdo"],
 
-  // RF02 — universitarios y egresados (mayores de edad). Texto corto: el detalle está en privacidad.html
+  // RF03 — enlace de adultos (universitarios y profesionales). El detalle está en privacidad-adultos.html
   consentimiento: {
     titulo: "Consentimiento informado",
+    politica: "privacidad-adultos.html",
     parrafos: [
-      "Te invitamos a participar en una investigación de tesis sobre orientación vocacional con inteligencia artificial. Responderás algunos datos de tu carrera, una breve escala de satisfacción y el test CHASIDE (unos 20 minutos). No te pediremos tu nombre, DNI ni correo: tus respuestas se guardan de forma anónima, identificadas solo con tu código, y se usan únicamente para la investigación. Participar es voluntario y puedes dejarlo en cualquier momento."
+      "Te invitamos a participar en una investigación de tesis sobre orientación vocacional con inteligencia artificial. Responderás algunos datos de tu carrera, una breve escala de satisfacción y el test CHASIDE (unos 20 minutos). No te pediremos tu nombre, DNI ni correo: al terminar, tus respuestas se guardan de forma anónima con un número que te mostraremos, y se usan únicamente para la investigación. Si no terminas, no se guarda nada. Participar es voluntario."
     ],
-    acepto: "Acepto participar"
+    acepto: "Acepto participar",
+    mayorDeEdad: "¿Tienes 18 años o más?"
   },
 
-  // RF02 — escolares (menores de edad; el consentimiento de los padres se gestiona en el colegio)
+  // RF02 — enlace de escolares (menores de edad; el consentimiento de los padres lo guarda el colegio)
   asentimiento: {
     titulo: "Asentimiento informado",
+    politica: "privacidad-menores.html",
     parrafos: [
-      "Te invitamos a participar en una investigación que busca ayudar a los estudiantes a conocer mejor sus intereses vocacionales. Responderás unas preguntas cortas y, según tu grupo, un test de preguntas de Sí o No. No te pediremos tu nombre ni ningún dato personal: tus respuestas se guardan de forma anónima, identificadas solo con tu código, y se usan únicamente para la investigación. Participar es voluntario: puedes dejarlo cuando quieras, sin ningún problema."
+      "Te invitamos a participar en una investigación que busca ayudar a los estudiantes a conocer mejor sus intereses vocacionales. Responderás unas preguntas cortas y un test de preguntas de Sí o No. No te pediremos tu nombre ni ningún dato personal: al terminar, tus respuestas se guardan de forma anónima con un número que te mostraremos, y se usan solo para la investigación. Si no terminas, no se guarda nada. Participar es voluntario."
     ],
     acepto: "Acepto participar"
   },
 
   escalas: {
-    // RF03 — preprueba y posprueba (EXP y CTL). BORRADOR.
+    // RF05 — preprueba y posprueba (escolares). BORRADOR.
     claridad: {
       titulo: "Claridad vocacional",
       instruccion: "Marca qué tan de acuerdo estás con cada afirmación, pensando en cómo te sientes hoy.",
@@ -45,7 +48,7 @@ const INSTRUMENTOS = {
         "Me siento preparado/a para tomar una decisión sobre mi futuro profesional."
       ]
     },
-    // RF04 — universitarios. BORRADOR.
+    // RF06 — universitarios. BORRADOR.
     satisfaccionCarrera: {
       titulo: "Satisfacción con tu carrera",
       instruccion: "Marca qué tan de acuerdo estás con cada afirmación sobre la carrera que estudias.",
@@ -57,10 +60,10 @@ const INSTRUMENTOS = {
         "Me veo trabajando en el campo de mi carrera en el futuro."
       ]
     },
-    // RF05 — egresados. BORRADOR.
+    // RF07 — profesionales. BORRADOR.
     satisfaccionProfesion: {
       titulo: "Satisfacción con tu profesión",
-      instruccion: "Marca qué tan de acuerdo estás con cada afirmación sobre la profesión que estudiaste.",
+      instruccion: "Marca qué tan de acuerdo estás con cada afirmación sobre la profesión que ejerces.",
       borrador: true,
       items: [
         "Estoy satisfecho/a con la profesión que elegí.",
@@ -69,7 +72,7 @@ const INSTRUMENTOS = {
         "Me veo ejerciendo esta profesión en los próximos años."
       ]
     },
-    // RF13 — adecuación del resultado (EXP y CTL). BORRADOR.
+    // RF13 — adecuación del resultado (aulas EXP y CTL). BORRADOR.
     adecuacion: {
       titulo: "Tu opinión sobre el resultado",
       instruccion: "Piensa en el resultado del test vocacional que acabas de hacer.",
@@ -80,7 +83,7 @@ const INSTRUMENTOS = {
         "El resultado del test me será útil para elegir una carrera."
       ]
     },
-    // RF13 — Modelo de Aceptación Tecnológica, 13 ítems (solo EXP).
+    // RF13 — Modelo de Aceptación Tecnológica, 13 ítems (solo aulas EXP).
     tam: {
       titulo: "Tu experiencia con el sistema",
       instruccion: "Marca qué tan de acuerdo estás con cada afirmación sobre el sistema que usaste.",
@@ -101,7 +104,7 @@ const INSTRUMENTOS = {
         "Recomendaría este sistema a otros estudiantes."
       ]
     },
-    // RF13 — System Usability Scale (Brooke, 1996), 10 ítems, versión en español (solo EXP).
+    // RF13 — System Usability Scale (Brooke, 1996), 10 ítems, versión en español (solo aulas EXP).
     // Ítems impares en positivo, pares en negativo; el puntaje 0-100 se calcula en el panel admin.
     sus: {
       titulo: "Facilidad de uso del sistema",
