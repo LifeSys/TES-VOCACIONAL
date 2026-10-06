@@ -4,8 +4,8 @@ Entrenamiento del modelo de ML del sistema (sección "Módulo de machine learnin
 
   Entrada (X): las 98 respuestas del CHASIDE (1 = Sí, 0 = No)  -> columnas r_1 .. r_98
   Etiqueta (y): área CHASIDE de la carrera (C, H, A, S, I, D, E) -> columna area
-  Casos que entran: universitarios de 3.er ciclo a más con satisfacción promedio >= 4;
-                    profesionales con satisfacción >= 4 y que trabajan en su área; en ambos casos
+  Casos que entran: universitarios de 3.er ciclo a más con satisfacción promedio >= 3;
+                    profesionales con satisfacción >= 3 y que trabajan en su área; en ambos casos
                     test no sospechoso y no excluido en el panel.
   Mínimo: 50 casos por área; un área con menos queda fuera del modelo (solo clave clásica).
   Modelos comparados: clave CHASIDE (línea base), regresión logística, Naive Bayes,
@@ -157,7 +157,7 @@ def main():
     ap.add_argument("--sintetico", action="store_true", help="usar datos sintéticos (solo pruebas / demo)")
     ap.add_argument("--version", required=True, help='versión del modelo, p. ej. "1.0"')
     ap.add_argument("--minimo", type=int, default=50, help="casos mínimos por área (defecto 50)")
-    ap.add_argument("--satisfaccion", type=float, default=4.0, help="satisfacción promedio mínima (defecto 4)")
+    ap.add_argument("--satisfaccion", type=float, default=3.0, help="satisfacción promedio mínima (defecto 3)")
     ap.add_argument("--ciclo", type=int, default=3, help="ciclo mínimo de los universitarios (defecto 3)")
     ap.add_argument("--salida", default=os.path.join(RAIZ, "modelo.json"), help="ruta de modelo.json")
     args = ap.parse_args()

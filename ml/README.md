@@ -6,7 +6,7 @@ El modelo aprende: *"las personas que responden así el CHASIDE están satisfech
 |---|---|
 | Entrada (X) | Las 98 respuestas del CHASIDE (1 = Sí, 0 = No) |
 | Etiqueta (y) | Área CHASIDE de la carrera (C, H, A, S, I, D, E) |
-| Casos que entran | Universitarios de 3.er ciclo a más con satisfacción promedio ≥ 4; profesionales con satisfacción ≥ 4 que trabajan en su área; en ambos casos test no sospechoso y no excluido en el panel |
+| Casos que entran | Universitarios de 3.er ciclo a más con satisfacción promedio ≥ 3; profesionales con satisfacción ≥ 3 que trabajan en su área; en ambos casos test no sospechoso y no excluido en el panel |
 | Mínimo | 50 casos por área; un área con menos queda fuera del modelo (solo clave clásica) |
 | Modelos comparados | Clave CHASIDE (línea base), regresión logística, Naive Bayes, Random Forest, SVM |
 | Validación | 5 pliegues estratificados; exactitud top-3 (y top-1) y F1 macro |

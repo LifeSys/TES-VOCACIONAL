@@ -18,7 +18,7 @@ const ORIENTA_CONFIG = {
   calidad: { msRapida: 1000, rapidasSeguidas: 10 },
 
   // Criterios para que un adulto entre al modelo (sección "Módulo de machine learning").
-  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 50, cicloMinimo: 3 },
+  entrenamiento: { satisfaccionMinima: 3, minimoPorArea: 50, cicloMinimo: 3 },
 
   // Modelo de ML desplegado (RNF06): para cambiarlo basta con reemplazar este archivo.
   modeloUrl: "modelo.json"
