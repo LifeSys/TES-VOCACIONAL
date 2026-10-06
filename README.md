@@ -51,6 +51,7 @@ js/admin.js                panel del superadministrador
 js/firebase-config.js      claves públicas del proyecto Firebase
 firestore.rules            reglas de seguridad
 ml/                        entrenamiento en Colab y verificación (ver ml/README.md)
+herramientas/version.py    actualiza la versión de los .js/.css antes de publicar
 ```
 
 ## Panel del superadministrador
@@ -67,6 +68,16 @@ ml/                        entrenamiento en Colab y verificación (ver ml/README
 2. **Catálogo de carreras** (`js/data.js`): revisar que estén las carreras de la UPN y de las escuelas policiales y militares.
 3. **Modelo**: `modelo.json` es provisional (`0.1-sintetico`). Entrenarlo con el CSV de adultos antes de abrir aulas EXP (ver `ml/README.md`) y luego cerrar el enlace de adultos desde el panel.
 4. **Firebase**: Authentication → Settings → User actions → desmarcar **Enable create (sign-up)**.
+
+## Publicar un cambio
+
+Antes de hacer commit + push de cambios en `js/` o `css/`, ejecutar:
+
+```bash
+python herramientas/version.py
+```
+
+Pone un número de versión nuevo a los archivos, para que los navegadores descarguen la versión nueva sin presionar Ctrl + F5.
 
 ## Publicar las reglas
 
