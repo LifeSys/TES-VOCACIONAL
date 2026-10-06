@@ -241,7 +241,7 @@
       campos =
         '<div class="form-row"><label class="form-label" for="f-carrera">¿Qué carrera estudias?</label><select id="f-carrera" class="select-input" data-bind="carrera">' + opcionesCarrera(d.carrera) + "</select></div>" +
         '<div class="form-row"><label class="form-label" for="f-ciclo">¿En qué ciclo estás?</label><select id="f-ciclo" class="select-input" data-bind="ciclo"><option value="">Elige tu ciclo…</option>' + ciclos + "</select></div>" +
-        '<div class="form-row"><span class="form-label">¿En qué universidad?</span>' + pills("universidad", [["UPN", "UPN"], ["Otra", "Otra"]], d.universidad) + "</div>";
+        '<div class="form-row"><span class="form-label">¿En qué universidad?</span>' + pills("universidad", CFG.universidades.map(function (u) { return [u, u]; }), d.universidad) + "</div>";
       nota = '<p class="section-note" style="margin:6px 0 0">Si tu carrera no aparece, elige la más parecida.</p>';
     } else {
       titulo = "Sobre tu profesión";

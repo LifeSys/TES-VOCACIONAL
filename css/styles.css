@@ -223,7 +223,7 @@ a:hover { color: var(--mint); }
 }
 .select-input:focus { border-color: var(--blue); }
 .text-left { text-align: left; }
-.yesno-inline { display: flex; gap: 10px; }
+.yesno-inline { display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* Escalas Likert */
 .tam-list { display: flex; flex-direction: column; gap: 6px; margin-top: 22px; }

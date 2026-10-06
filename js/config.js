@@ -10,6 +10,9 @@ const ORIENTA_CONFIG = {
   prefijos: { escolar: "ESC", universitario: "UNI", profesional: "PRO" },
   digitos: 4,
 
+  // Universidades que puede elegir un universitario (la última es para cualquier otra).
+  universidades: ["UPN", "UPC", "UTP", "UCV", "ULIMA", "PUCP", "Otra"],
+
   // Calidad de datos (RF10): se marca como sospechoso un test con todo Sí, todo No, o con esta
   // cantidad (o más) de respuestas seguidas en menos de `msRapida` milisegundos.
   calidad: { msRapida: 1000, rapidasSeguidas: 10 },
