@@ -153,14 +153,14 @@
         : (r.resultado && r.resultado.clave ? Chaside.topClave(r.resultado.clave, 2).map(function (a) { return esc(NOM[a]); }).join("<br>") + ' <span class="admin-pct">(clásico)</span>' : "—");
       var dur = duracionSeg(r);
       return "<tr" + (r.excluido ? ' class="row-off"' : "") + "><td><b>" + esc(r.id) + "</b><br><span class=\"admin-pct\">" + esc(fmtFecha(fechaDe(r))) + "</span></td><td>" + esc(r.aula) + "<br><span class=\"admin-pct\">" + esc(r.colegio) + " · " + esc(r.grado) + ".°</span></td><td>" + esc(r.grupo) +
-        "</td><td>" + esc(r.sexo || "—") + "</td><td>" + res + "</td><td>" + calidadHtml(r) + "</td><td>" + (dur === "" ? "—" : Math.round(dur / 60) + " min") +
+        "</td><td>" + res + "</td><td>" + calidadHtml(r) + "</td><td>" + (dur === "" ? "—" : Math.round(dur / 60) + " min") +
         '</td><td><button class="footer-link-btn" style="margin-top:0" data-pdf="' + esc(r.id) + '">PDF</button></td><td>' + botonesRegistro("escolares", r) + "</td></tr>";
     }).join("");
     var g = function (grupo) { var t = escolares.filter(function (r) { return r.grupo === grupo; }); return t.length + " (" + t.filter(valido).length + " válidos)"; };
     return (
       '<div class="admin-toolbar"><span>EXP ' + g("EXP") + " · CTL " + g("CTL") + "</span>" +
       '<button class="admin-btn" data-csv="escolares">⬇ CSV de escolares (SPSS)</button></div>' +
-      tabla(["Número", "Aula", "Grupo", "Sexo", "Resultado", "Calidad", "Tiempo", "PDF", ""], filas)
+      tabla(["Número", "Aula", "Grupo", "Resultado", "Calidad", "Tiempo", "PDF", ""], filas)
     );
   }
 
@@ -219,8 +219,14 @@
       '<div class="card" style="padding:24px">' +
       '<p class="admin-note" style="margin:0">Versión <b>' + esc(modelo.version) + "</b> · " + esc(modelo.algoritmo || "") + " · entrenado el " + esc(modelo.entrenado || "—") +
       " · " + esc(modelo.casos != null ? modelo.casos + " casos" : "") + " · áreas: " + esc((modelo.areas || []).join(", ")) + "</p>" +
-      (filasMet ? '<h2 class="section-title" style="margin-top:20px">Comparación de modelos (validación cruzada de 5 pliegues)</h2>' +
+      '<p class="admin-note" style="margin:8px 0 0">Huella SHA-256 del modelo: <span class="link-cell">' + esc(modelo.hash || "— (modelo sin huella: volver a entrenarlo)") + "</span>" +
+      (modelo.datosHash ? '<br>Huella SHA-256 del CSV de entrenamiento: <span class="link-cell">' + esc(modelo.datosHash) + "</span>" : "") + "</p>" +
+      (filasMet ? '<h2 class="section-title" style="margin-top:20px">Comparación de modelos (validación cruzada anidada, 5 pliegues externos)</h2>' +
         tabla(["Modelo", "Exactitud top-3", "Exactitud top-1", "F1 macro"], filasMet) : "") +
+      (modelo.mcnemar ? '<p class="admin-note" style="margin:14px 0 0">McNemar, regresión logística frente a la clave: ' + ["top3", "top1"].map(function (k) {
+        var m = modelo.mcnemar[k];
+        return m ? k.replace("top", "top-") + " b = " + m.b + ", c = " + m.c + ", p = " + Number(m.p_exacta).toPrecision(3) : "";
+      }).join(" · ") + "</p>" : "") +
       "</div>"
     );
   }
@@ -338,20 +344,21 @@
 
   function csvEscolares() {
     var nPre = ESC.claridad.items.length, nAd = ESC.adecuacion.items.length, nTam = ESC.tam.items.length, nSus = ESC.sus.items.length;
-    var cab = ["numero", "aula", "colegio", "grado", "grupo", "sexo", "fecha_asentimiento"]
+    // Sin respuestas por ítem, tiempos por pregunta ni sexo (no se guardan de los escolares).
+    var cab = ["numero", "aula", "colegio", "grado", "grupo", "fecha_asentimiento"]
       .concat(rango(nPre, "pre_"), ["pre_total"], rango(nPre, "post_"), ["post_total"])
-      .concat(["inicio", "fin", "duracion_seg"], rango(N_ITEMS, "r_"), rango(N_ITEMS, "t_ms_"))
+      .concat(["inicio", "fin", "duracion_seg"])
       .concat(AREAS.map(function (a) { return "clave_" + a; }))
-      .concat(["modelo_version"], AREAS.map(function (a) { return "prob_" + a; }), ["top1", "top2", "top3", "explicacion_items"])
+      .concat(["modelo_version"], AREAS.map(function (a) { return "prob_" + a; }), ["top1", "top2", "top3"])
       .concat(["sospechoso", "motivo", "excluido"])
       .concat(rango(nAd, "adec_"), rango(nTam, "tam_"), rango(nSus, "sus_"), ["sus_puntaje", "completado"]);
     var filas = escolares.map(function (r) {
       var res = r.resultado || {}, clave = res.clave || {}, p = probsDe(res.modelo) || {}, top = top3Modelo(r);
-      return [r.id, r.aula, r.colegio, r.grado, r.grupo, r.sexo || "", fmtFecha(r.asentimiento && r.asentimiento.fecha)]
+      return [r.id, r.aula, r.colegio, r.grado, r.grupo, fmtFecha(r.asentimiento && r.asentimiento.fecha)]
         .concat(arr(r.pretest, nPre), [r.pretest ? suma(r.pretest) : ""], arr(r.postest, nPre), [r.postest ? suma(r.postest) : ""])
-        .concat([fmtFecha(r.inicio), fmtFecha(r.fin), duracionSeg(r)], chasideCols(r))
+        .concat([fmtFecha(r.inicio), fmtFecha(r.fin), duracionSeg(r)])
         .concat(AREAS.map(function (a) { return clave[a] != null ? clave[a] : ""; }))
-        .concat([res.modelo ? res.modelo.v : ""], AREAS.map(function (a) { return p[a] != null ? p[a] : ""; }), [top[0] || "", top[1] || "", top[2] || "", (res.explicacion || []).join("|")])
+        .concat([res.modelo ? res.modelo.v : ""], AREAS.map(function (a) { return p[a] != null ? p[a] : ""; }), [top[0] || "", top[1] || "", top[2] || ""])
         .concat(calidadCols(r))
         .concat(arr(r.adecuacion, nAd), arr(r.tam, nTam), arr(r.sus, nSus), [puntajeSus(r.sus) == null ? "" : puntajeSus(r.sus), fmtFecha(r.completado)]);
     });

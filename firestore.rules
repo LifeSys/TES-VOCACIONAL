@@ -62,12 +62,15 @@ service cloud.firestore {
     }
 
     // ---------- escolares (ESC-) ----------
+    // Sin respuestas por ítem, tiempos por pregunta ni sexo: el resultado solo lleva la clave
+    // por área y las probabilidades del modelo con su versión.
     match /escolares/{id} {
       allow create: if numeroValido('ESC', id)
-        && request.resource.data.keys().hasOnly(['aula', 'colegio', 'grado', 'grupo', 'sexo', 'asentimiento',
-             'pretest', 'postest', 'adecuacion', 'tam', 'sus', 'resultado', 'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.keys().hasOnly(['aula', 'colegio', 'grado', 'grupo', 'asentimiento',
+             'pretest', 'postest', 'adecuacion', 'tam', 'sus', 'resultado', 'inicio', 'fin', 'calidad', 'completado'])
         && request.resource.data.keys().hasAll(['aula', 'grupo', 'asentimiento', 'pretest', 'postest', 'adecuacion',
-             'resultado', 'chaside', 'inicio', 'fin', 'calidad', 'completado'])
+             'resultado', 'inicio', 'fin', 'calidad', 'completado'])
+        && request.resource.data.resultado.keys().hasOnly(['clave', 'modelo'])
         && request.resource.data.asentimiento.acepto == true
         && get(ruta('aulas', request.resource.data.aula)).data.activa == true
         && request.resource.data.grupo == get(ruta('aulas', request.resource.data.aula)).data.grupo

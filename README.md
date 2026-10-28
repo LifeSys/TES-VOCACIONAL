@@ -8,7 +8,7 @@ Sitio estático (HTML/CSS/JS puro, sin build step) en **GitHub Pages**, con los 
 
 | Enlace | Para quién | Flujo |
 |---|---|---|
-| `escolar.html?aula=K7Q2` | Escolares de 4.° y 5.°, en aula | Política para menores + asentimiento → sexo (opcional) → preprueba → CHASIDE → resultado → posprueba → adecuación → (solo EXP: TAM → SUS) → número `ESC-` + PDF |
+| `escolar.html?aula=K7Q2` | Escolares de 4.° y 5.°, en aula | Política para menores + asentimiento → preprueba → CHASIDE → resultado → posprueba → adecuación → (solo EXP: TAM → SUS) → número `ESC-` + PDF. Quien no acepta (o cuyos padres se oponen) elige **sin registro**: CHASIDE → resultado → PDF, sin guardar nada |
 | `adultos.html` | Universitarios y profesionales (no compartir en colegios) | Política para adultos + consentimiento → ¿18 o más? → universitario / profesional → datos de carrera → satisfacción → CHASIDE → número `UNI-` / `PRO-` |
 | `admin.html` | Superadministrador (johannsebastian789@gmail.com) | Login → aulas → tablas → conteos → excluir / borrar → CSV |
 
@@ -24,10 +24,10 @@ Sitio estático (HTML/CSS/JS puro, sin build step) en **GitHub Pages**, con los 
 |---|---|---|---|
 | `contadores` | Último número de `ESC`, `UNI`, `PRO`; `estado.adultosAbierto` | La web (+1 en transacción); el admin (estado) | La web (solo para numerar) |
 | `aulas` | Colegio (código), grado, sección, grupo EXP/CTL, activa | Superadministrador | La web (una por código) y el admin |
-| `escolares` | Aula, sexo, asentimiento, pre/post, 98 respuestas + tiempos, inicio/fin, resultado, calidad, adecuación, TAM, SUS | La web, una vez al terminar | Solo el admin |
+| `escolares` | Aula, asentimiento, pre/post, inicio/fin (tiempo total), resultado (clave por área + probabilidades y versión del modelo), calidad, adecuación, TAM, SUS. **No** se guardan las 98 respuestas, los tiempos por pregunta ni el sexo | La web, una vez al terminar | Solo el admin |
 | `adultos` | Tipo, consentimiento, 18+, carrera y área, ciclo/universidad o años de experiencia/trabaja en su área, satisfacción, 98 respuestas + tiempos, calidad | La web, una vez al terminar | Solo el admin |
 
-Nunca se guarda nombre, DNI, correo, teléfono, fecha de nacimiento, IP, ubicación ni el nombre del colegio en texto libre.
+Nunca se guarda nombre, DNI, correo, sexo, teléfono, fecha de nacimiento, IP, ubicación ni el nombre del colegio en texto libre.
 
 ## Estructura
 
@@ -59,14 +59,14 @@ herramientas/version.py    actualiza la versión de los .js/.css antes de public
 - **Aulas**: crear (colegio, grado, sección, grupo), copiar su enlace y cerrarla al terminar la sesión.
 - **Escolares**: tabla con resultado, calidad y tiempo; PDF; excluir / incluir; borrar; **CSV de escolares** para SPSS.
 - **Adultos**: tabla con carrera, área, satisfacción y si entra al modelo; excluir / incluir; borrar; abrir o cerrar el enlace de adultos; **CSV de adultos** para entrenar.
-- **Conteos**: adultos válidos por área (meta 50) y escolares por grupo.
-- **Modelo**: versión desplegada y comparación de modelos.
+- **Conteos**: adultos válidos por área (meta 30) y escolares por grupo.
+- **Modelo**: versión desplegada, huella SHA-256, comparación de modelos y prueba de McNemar.
 
 ## Antes de usarlo con participantes
 
 1. **Instrumentos**: reemplazar los textos marcados `borrador` en [`js/instrumentos.js`](js/instrumentos.js) por la versión del juicio de expertos, sin cambiar la cantidad de ítems.
 2. **Catálogo de carreras** (`js/data.js`): revisar que estén las carreras de la UPN y de las escuelas policiales y militares.
-3. **Modelo**: `modelo.json` es provisional (`0.1-sintetico`). Entrenarlo con el CSV de adultos antes de abrir aulas EXP (ver `ml/README.md`) y luego cerrar el enlace de adultos desde el panel.
+3. **Modelo**: `modelo.json` es provisional (`0.2-sintetico`). **Cerrar el enlace de adultos** desde el panel, entrenarlo con el CSV de adultos (ver `ml/README.md`) y publicarlo **antes** de abrir las aulas del experimento. No cambiar `modelo.json` durante la aplicación: su versión y su huella (`hash`) deben ser las mismas en todos los registros.
 4. **Firebase**: Authentication → Settings → User actions → desmarcar **Enable create (sign-up)**.
 
 ## Publicar un cambio

@@ -3,6 +3,10 @@
 //   adultos.html            -> universitarios y profesionales (datos de entrenamiento del modelo)
 // Nada se guarda hasta el final: al terminar, una transacción asigna el número correlativo
 // (ESC-0001, UNI-0001, PRO-0001) y guarda todo de una vez. Quien abandona no deja registro.
+// De los escolares NO se guardan las 98 respuestas ni los tiempos por pregunta: se usan en el
+// dispositivo para calcular el resultado y la marca de calidad, y luego se descartan.
+// Modo sin registro (escolares que no aceptan o cuyos padres se oponen): hacen el test y ven su
+// resultado, pero no se escribe nada en la base de datos.
 (function () {
   "use strict";
 
@@ -20,10 +24,12 @@
   var POLITICA = ENLACE === "escolar" ? INS.asentimiento.politica : INS.consentimiento.politica;
 
   var FLUJOS = {
-    EXP: ["politica", "datos", "pretest", "instrucciones", "chaside", "resultado", "postest", "adecuacion", "tam", "sus", "final"],
-    CTL: ["politica", "datos", "pretest", "instrucciones", "chaside", "resultado", "postest", "adecuacion", "final"],
+    EXP: ["politica", "pretest", "instrucciones", "chaside", "resultado", "postest", "adecuacion", "tam", "sus", "final"],
+    CTL: ["politica", "pretest", "instrucciones", "chaside", "resultado", "postest", "adecuacion", "final"],
+    libre: ["politica", "instrucciones", "chaside", "resultado", "final"],   // sin registro: no se guarda nada
     adultos: ["politica", "edad", "tipo", "datos", "satisfaccion", "instrucciones", "chaside", "final"]
   };
+  function pasosDe(s) { return s.sinRegistro ? FLUJOS.libre : FLUJOS[s.flujo]; }
   var ESCALA_DE_PASO = { pretest: "claridad", postest: "claridad", adecuacion: "adecuacion", tam: "tam", sus: "sus" };
 
   function estadoInicial() {
@@ -34,7 +40,8 @@
       aula: null,               // { codigo, colegio, grado, seccion, grupo }
       paso: 0,
       acepto: false,
-      tipo: null,               // universitario | profesional
+      sinRegistro: false,       // escolar que hace el test sin participar en la investigación
+      tipo: null,              // universitario | profesional
       datos: {},
       escalas: {},
       respuestas: new Array(N_ITEMS).fill(null),
@@ -109,9 +116,9 @@
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
-  function pasoActual() { return state.flujo ? FLUJOS[state.flujo][state.paso] : null; }
+  function pasoActual() { return state.flujo ? pasosDe(state)[state.paso] : null; }
   function esEscolar() { return ENLACE === "escolar"; }
-  function conModelo() { return state.flujo === "EXP"; }
+  function conModelo() { return !!state.aula && state.aula.grupo === "EXP"; }   // también sin registro en aulas EXP
   function aFecha(iso) { return iso ? new Date(iso) : null; }
   function hora(iso) {
     var d = new Date(iso);
@@ -138,8 +145,8 @@
         ? '<button class="icon-btn" data-action="back" aria-label="Pregunta anterior">' + icon("back") + "</button>"
         : '<div class="icon-btn-spacer"></div>';
       right = '<div class="top-row-right">' + backBtn + '<div class="q-counter">Pregunta ' + (state.qIndex + 1) + " / " + N_ITEMS + "</div></div>";
-    } else if (ES_DEMO) {
-      right = '<div class="top-row-right"><span class="q-tag">Demo · no se guarda</span></div>';
+    } else if (ES_DEMO || state.sinRegistro) {
+      right = '<div class="top-row-right"><span class="q-tag">' + (ES_DEMO ? "Demo" : "Sin registro") + " · no se guarda</span></div>";
     }
     return '<div class="top-row"><img class="brand-mark-img" src="img/logo.svg" width="34" height="34" alt="OrientaIA"><div class="brand-name">OrientaIA</div>' + right + "</div>";
   }
@@ -154,7 +161,8 @@
     return (
       '<div class="footer-divider"></div><footer class="site-footer"><div class="footer-bottom">' +
       '<p>&copy; 2026 <b>OrientaIA</b> &mdash; Héctor Medina y Johann Guevara. Todos los derechos reservados. Queda prohibida la reproducción total o parcial de este sitio, su diseño y sus contenidos sin autorización previa.</p>' +
-      '<p>Tus respuestas se guardan de forma anónima solo para fines de investigación. <a href="' + POLITICA + '" target="_blank" rel="noopener">Ver política de privacidad</a></p>' +
+      "<p>" + (state.sinRegistro ? "En el modo sin registro no se guarda ninguna respuesta." : "Tus respuestas se guardan de forma anónima solo para fines de investigación.") +
+      ' <a href="' + POLITICA + '" target="_blank" rel="noopener">Ver política de privacidad</a></p>' +
       "</div></footer>"
     );
   }
@@ -185,6 +193,10 @@
       '<p>Antes de aceptar, lee la <a href="' + t.politica + '" target="_blank" rel="noopener">política de privacidad</a>.</p></div>' +
       '<label class="check-row"><input type="checkbox" data-bind="acepto"' + (state.acepto ? " checked" : "") + "> <span>" + esc(t.acepto) + "</span></label>" +
       '<button class="btn-primary" style="margin-top:22px" data-action="aceptar"' + (state.acepto ? "" : " disabled") + ">Continuar " + icon("arrow") + "</button>" +
+      (t.sinRegistro
+        ? '<p class="privacy-note" style="margin-top:18px">' + esc(t.sinRegistro) + "</p>" +
+          '<button class="btn-secondary" style="margin-top:10px" data-action="sin-registro">Hacer el test sin registro</button>'
+        : "") +
       "</div>"
     );
   }
@@ -228,13 +240,7 @@
 
   function renderDatos() {
     var d = state.datos, campos, titulo, nota = "";
-    if (esEscolar()) {
-      titulo = "Sobre ti";
-      campos =
-        '<div class="form-row"><span class="form-label">Grado</span><p class="section-note" style="margin:0">' + esc(state.aula.grado ? state.aula.grado + ".° de secundaria" : "—") + "</p></div>" +
-        '<div class="form-row"><span class="form-label">Sexo <span class="admin-pct">(opcional)</span></span>' +
-        pills("sexo", [["F", "Mujer"], ["M", "Hombre"], ["N", "Prefiero no decirlo"]], d.sexo) + "</div>";
-    } else if (state.tipo === "universitario") {
+    if (state.tipo === "universitario") {
       titulo = "Sobre tu carrera";
       var ciclos = "";
       for (var c = 1; c <= 14; c++) ciclos += '<option value="' + c + '"' + (d.ciclo === c ? " selected" : "") + ">" + c + ".° ciclo</option>";
@@ -262,7 +268,6 @@
 
   function datosCompletos() {
     var d = state.datos;
-    if (esEscolar()) return true;   // el sexo es opcional
     if (!d.carrera) return false;
     if (state.tipo === "universitario") return !!d.ciclo && !!d.universidad;
     return d.anosExperiencia != null && d.anosExperiencia >= 0 && typeof d.trabajaEnArea === "boolean";
@@ -386,7 +391,8 @@
       '<div><h2 class="section-title">' + (probs ? "Tus 3 áreas más afines" : "Tus áreas más representativas") + "</h2>" + nota + '<div class="ml-list">' + bloque + "</div>" + explicacion + "</div>" +
       '<div><h2 class="section-title">Puntaje por área</h2><p class="section-note">Cantidad de respuestas Sí en cada área (clave CHASIDE).</p><div class="scores-block">' + puntajes + "</div></div>" +
       "</div>" +
-      '<div class="disclaimer-box"><p>Este resultado es una sugerencia orientativa. Coméntalo con tu psicólogo o tutor escolar para tomar una decisión informada. Al terminar podrás descargarlo en PDF.</p></div>' +
+      '<div class="disclaimer-box"><p>' + (probs ? "Este resultado lo calculó un sistema automatizado (un modelo de inteligencia artificial). " : "") +
+      "Es una <b>orientación, no una decisión</b>: la decisión sobre tu futuro es tuya. Coméntalo con tu psicólogo o tutor escolar para tomar una decisión informada. Al terminar podrás descargarlo en PDF.</p></div>" +
       '<button class="btn-primary" style="margin-top:26px" data-action="siguiente">Continuar ' + icon("arrow") + "</button>" +
       "</div>"
     );
@@ -394,6 +400,17 @@
 
   // RF14: al final se guarda todo y se muestra el número asignado.
   function renderFinal() {
+    if (state.sinRegistro) {
+      return (
+        '<div class="card thanks-center">' +
+        '<div class="thanks-icon">' + icon("thanks") + "</div>" +
+        '<h1 class="title">¡Terminaste el test!</h1>' +
+        '<p class="subtitle">Hiciste el test sin registro: no se guardó ninguna de tus respuestas ni tu resultado. Si quieres conservarlo, descarga el PDF ahora.</p>' +
+        '<button class="btn-primary" style="margin-top:22px" data-action="pdf">' + icon("download") + " Descargar mis resultados (PDF)</button>" +
+        '<button class="btn-secondary" style="margin-top:12px" data-action="terminar">Terminar</button>' +
+        "</div>"
+      );
+    }
     if (!state.numero) {
       if (state.errorGuardado) {
         return (
@@ -418,7 +435,8 @@
       '<p class="subtitle">' + esc(texto) + "</p>" +
       '<div class="numero-box"><span>Tu número de registro</span><b>' + esc(state.numero) + "</b>" +
       (ES_DEMO ? "<small>Modo demostración: no se guardó ningún dato.</small>"
-        : '<small>Guárdalo: si algún día quieres que borremos tus datos, escríbenos indicando este número (ver la <a href="' + POLITICA + '" target="_blank" rel="noopener">política de privacidad</a>).</small>') +
+        : '<small>Guárdalo: si algún día quieres que borremos tus datos, escribe a <a href="mailto:' + CFG.correoContacto + '">' + CFG.correoContacto + "</a> indicando este número" +
+          (esEscolar() ? " (también puede pedirlo tu padre, madre o apoderado)" : "") + '. Ver la <a href="' + POLITICA + '" target="_blank" rel="noopener">política de privacidad</a>.</small>') +
       "</div>" +
       (conPdf ? '<button class="btn-primary" style="margin-top:22px" data-action="pdf">' + icon("download") + " Descargar mis resultados (PDF)</button>" : "") +
       '<button class="btn-secondary" style="margin-top:12px" data-action="terminar">Terminar</button>' +
@@ -518,6 +536,9 @@
         Object.keys(pred.probs).forEach(function (a) { modelo[a] = Math.round(pred.probs[a] * 10000) / 10000; });
       }
       state.resultado = { clave: clave, modelo: modelo, explicacion: pred ? pred.explicacion : [] };
+      // Las respuestas y los tiempos de un escolar ya no hacen falta: se descartan del dispositivo.
+      state.respuestas = new Array(N_ITEMS).fill(null);
+      state.tiemposMs = new Array(N_ITEMS).fill(0);
       finalizando = false;
       siguiente();
     });
@@ -533,9 +554,10 @@
   }
 
   // Registro completo que se guarda al final (solo lo que necesita una hipótesis o el modelo).
+  // Escolares: grupo, escalas, tiempo total (inicio/fin), clave, probabilidades y versión del modelo.
+  // Sin respuestas por ítem, tiempos por pregunta, sexo ni preguntas de la explicación.
   function registro() {
     var comun = {
-      chaside: { respuestas: state.respuestas.slice(), tiemposMs: state.tiemposMs.slice() },
       inicio: aFecha(state.inicio),
       fin: aFecha(state.fin),
       calidad: state.calidad,
@@ -544,10 +566,9 @@
     if (esEscolar()) {
       var r = {
         aula: state.aula.codigo, colegio: state.aula.colegio, grado: state.aula.grado, grupo: state.aula.grupo,
-        sexo: state.datos.sexo === "F" || state.datos.sexo === "M" ? state.datos.sexo : null,
         asentimiento: { acepto: true, fecha: aFecha(state.aceptadoEn) },
         pretest: state.escalas.pretest, postest: state.escalas.postest, adecuacion: state.escalas.adecuacion,
-        resultado: state.resultado
+        resultado: { clave: state.resultado.clave, modelo: state.resultado.modelo }
       };
       if (state.flujo === "EXP") { r.tam = state.escalas.tam; r.sus = state.escalas.sus; }
       return Object.assign(r, comun);
@@ -559,7 +580,8 @@
       mayorDeEdad: true,
       carrera: d.carrera,
       area: Chaside.areaDeCarrera(d.carrera),
-      satisfaccion: state.escalas.satisfaccion
+      satisfaccion: state.escalas.satisfaccion,
+      chaside: { respuestas: state.respuestas.slice(), tiemposMs: state.tiemposMs.slice() }   // entrenan el modelo
     };
     if (state.tipo === "universitario") { a.ciclo = Number(d.ciclo); a.universidad = d.universidad; }
     else { a.anosExperiencia = Number(d.anosExperiencia); a.trabajaEnArea = d.trabajaEnArea; }
@@ -567,7 +589,7 @@
   }
 
   function guardarFinal() {
-    if (state.guardando || state.numero) return;
+    if (state.guardando || state.numero || state.sinRegistro) return;   // sin registro: nunca se escribe
     if (ES_DEMO) { state.numero = "DEMO"; guardarSesion(); render(); return; }
     state.guardando = true;
     state.errorGuardado = "";
@@ -594,7 +616,7 @@
   function descargarPdf() {
     if (!state.resultado) return;
     ResultadoPDF.generar({
-      codigo: state.numero,
+      codigo: state.sinRegistro ? "Sin registro" : state.numero,
       fecha: new Date(state.fin || Date.now()),
       clave: state.resultado.clave,
       modelo: state.resultado.modelo,
@@ -624,6 +646,7 @@
     if (a === "reanudar") { var s = leerSesion(); if (s) { state = s; state.guardando = false; state.pantalla = "flujo"; irA(state.paso); } }
     else if (a === "nuevo") { borrarSesion(); empezarFlujo(); }
     else if (a === "aceptar") { if (state.acepto) { state.aceptadoEn = new Date().toISOString(); siguiente(); } }
+    else if (a === "sin-registro") { state.sinRegistro = true; state.acepto = false; state.aceptadoEn = null; siguiente(); }
     else if (a === "edad") {
       if (el.getAttribute("data-v") === "1") siguiente();
       else aviso("Gracias por tu interés", "Este cuestionario es solo para personas de 18 años o más. No se guardó ninguna respuesta.");
@@ -682,7 +705,7 @@
     var pendiente = leerSesion();
     if (pendiente && pendiente.flujo === flujo && (pendiente.paso > 0 || pendiente.acepto)) {
       if (pendiente.numero) { borrarSesion(); empezarFlujo(); return; }       // ya terminó y se guardó
-      if (FLUJOS[flujo][pendiente.paso] === "final") {                          // terminó pero falta guardar
+      if (pasosDe(pendiente)[pendiente.paso] === "final") {                     // terminó (falta guardar o es sin registro)
         state = pendiente; state.guardando = false; state.pantalla = "flujo"; irA(state.paso); return;
       }
       state.pantalla = "reanudar";

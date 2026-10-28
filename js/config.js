@@ -3,6 +3,9 @@ const ORIENTA_CONFIG = {
   // Único correo con acceso al panel (también está escrito en firestore.rules: cambiar en los dos).
   correoAdmin: "johannsebastian789@gmail.com",
 
+  // Correo público para consultas y solicitudes de eliminación de datos (derechos ARCO).
+  correoContacto: "testvocacional.app@gmail.com",
+
   // Aula de prueba para la sustentación: recorre el flujo experimental sin guardar nada.
   aulaDemo: "DEMO",
 
@@ -18,7 +21,8 @@ const ORIENTA_CONFIG = {
   calidad: { msRapida: 1000, rapidasSeguidas: 10 },
 
   // Criterios para que un adulto entre al modelo (sección "Módulo de machine learning").
-  entrenamiento: { satisfaccionMinima: 3, minimoPorArea: 50, cicloMinimo: 3 },
+  // Deben coincidir con los valores por defecto de ml/entrenar_modelo.py.
+  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 30, cicloMinimo: 3 },
 
   // Modelo de ML desplegado (RNF06): para cambiarlo basta con reemplazar este archivo.
   modeloUrl: "modelo.json"

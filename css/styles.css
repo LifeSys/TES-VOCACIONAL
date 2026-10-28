@@ -295,7 +295,7 @@ a:hover { color: var(--mint); }
 .legal h2 { font-size: 16px; font-weight: 700; margin: 30px 0 10px; color: var(--text); }
 .legal p, .legal li { font-size: 14.5px; line-height: 1.7; color: var(--text-muted); }
 .legal p { margin: 0 0 10px; }
-.legal ul { margin: 0 0 10px; padding-left: 20px; }
+.legal ul, .legal ol { margin: 0 0 10px; padding-left: 20px; }
 .legal li { margin-bottom: 6px; }
 .legal b { color: var(--text); }
 a.q-tag { text-decoration: none; }

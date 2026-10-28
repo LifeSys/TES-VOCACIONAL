@@ -13,20 +13,27 @@ const INSTRUMENTOS = {
     titulo: "Consentimiento informado",
     politica: "privacidad-adultos.html",
     parrafos: [
-      "Te invitamos a participar en una investigación de tesis sobre orientación vocacional con inteligencia artificial. Responderás algunos datos de tu carrera, una breve escala de satisfacción y el test CHASIDE (unos 20 minutos). No te pediremos tu nombre, DNI ni correo: al terminar, tus respuestas se guardan de forma anónima con un número que te mostraremos, y se usan únicamente para la investigación. Si no terminas, no se guarda nada. Participar es voluntario."
+      "Te invitamos a participar en una investigación de tesis sobre orientación vocacional con inteligencia artificial. Responderás algunos datos de tu carrera, una breve escala de satisfacción y el test CHASIDE (unos 20 minutos). No te pediremos tu nombre, DNI ni correo: al terminar, tus respuestas se guardan de forma anónima con un número que te mostraremos, y se usan únicamente para la investigación. Si no terminas, no se guarda nada. Participar es voluntario.",
+      "Tus respuestas se usarán para entrenar un modelo automatizado (inteligencia artificial) que mostrará a estudiantes de secundaria las áreas profesionales más afines a sus intereses. Ese resultado es una orientación, no una decisión: no decide por nadie ni reemplaza la orientación de un profesional.",
+      "Si después quieres que borremos tus datos, escribe a testvocacional.app@gmail.com indicando el número de registro que verás al terminar."
     ],
     acepto: "Acepto participar",
     mayorDeEdad: "¿Tienes 18 años o más?"
   },
 
-  // RF02 — enlace de escolares (menores de edad; el consentimiento de los padres lo guarda el colegio)
+  // RF02 — enlace de escolares (menores de edad). La dirección del colegio autoriza la aplicación,
+  // los padres reciben un comunicado con la opción de no participar y el estudiante da su asentimiento.
   asentimiento: {
     titulo: "Asentimiento informado",
     politica: "privacidad-menores.html",
     parrafos: [
-      "Te invitamos a participar en una investigación que busca ayudar a los estudiantes a conocer mejor sus intereses vocacionales. Responderás unas preguntas cortas y un test de preguntas de Sí o No. No te pediremos tu nombre ni ningún dato personal: al terminar, tus respuestas se guardan de forma anónima con un número que te mostraremos, y se usan solo para la investigación. Si no terminas, no se guarda nada. Participar es voluntario."
+      "Te invitamos a participar en una investigación que busca ayudar a los estudiantes a conocer mejor sus intereses vocacionales. La dirección de tu colegio autorizó esta actividad y tus padres o apoderados recibieron un comunicado con la opción de que no participes.",
+      "Responderás unas preguntas cortas y un test de preguntas de Sí o No. No te pediremos tu nombre ni ningún dato personal. Al terminar se guardan de forma anónima, con un número que te mostraremos, tus respuestas a las preguntas cortas y tu resultado por área; tus respuestas a cada pregunta del test no se guardan. Si no terminas, no se guarda nada.",
+      "Tu resultado puede ser calculado por un sistema automatizado (un modelo de inteligencia artificial). Es una orientación, no una decisión: la decisión sobre tu futuro es tuya.",
+      "Participar es voluntario y puedes dejarlo en cualquier momento. Si después quieres que borremos tus datos, tú o tus padres pueden escribir a testvocacional.app@gmail.com indicando tu número de registro."
     ],
-    acepto: "Acepto participar"
+    acepto: "Acepto participar",
+    sinRegistro: "Si no quieres participar, o tus padres indicaron que no participes, igual puedes hacer el test y ver tu resultado. En ese caso no se guarda absolutamente nada."
   },
 
   escalas: {
