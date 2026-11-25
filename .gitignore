@@ -4,3 +4,4 @@ Thumbs.db
 .claude/
 firebase-debug.log
 firestore-debug.log
+__pycache__/
