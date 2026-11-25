@@ -7,7 +7,7 @@ El modelo aprende: *"las personas que responden así el CHASIDE están satisfech
 | Entrada (X) | Las 98 respuestas del CHASIDE (1 = Sí, 0 = No) |
 | Etiqueta (y) | Área CHASIDE de la carrera (C, H, A, S, I, D, E) |
 | Casos que entran | Universitarios de 3.er ciclo a más con satisfacción promedio ≥ 4; profesionales con satisfacción ≥ 4 que trabajan en su área; en ambos casos test no sospechoso y no excluido en el panel |
-| Mínimo | 30 casos por área; un área con menos queda fuera del modelo (solo clave clásica) |
+| Mínimo | 15 casos por área; un área con menos queda fuera del modelo (solo clave clásica) |
 | Modelos comparados | Clave CHASIDE (línea base), regresión logística, Naive Bayes, Random Forest, SVM; todos con ponderación de clases |
 | Validación | Cruzada anidada: 5 pliegues externos estratificados miden; 3 internos eligen los hiperparámetros (C, etc.). Exactitud top-3 (y top-1) y F1 macro |
 | Referencias | Azar (42,9 % en top-3 con 7 áreas) y prueba de McNemar entre la regresión logística y la clave |
@@ -28,7 +28,7 @@ Los escolares nunca se usan para entrenar. Cada resultado guardado lleva la vers
 
 ## Entrenar con los datos reales
 
-1. Panel → pestaña **Conteos**: excluye los registros sospechosos y espera a tener ≥ 30 casos válidos por área. Luego **cierra el enlace de adultos** en la pestaña Adultos.
+1. Panel → pestaña **Conteos**: excluye los registros sospechosos y espera a tener ≥ 15 casos válidos por área. Luego **cierra el enlace de adultos** en la pestaña Adultos.
 2. Pestaña **Adultos** → **CSV de adultos (entrenamiento)**.
 3. Abre `entrenamiento_colab.ipynb` en Google Colab, sube `entrenar_modelo.py` y el CSV, y ejecuta las celdas (o en local: `python ml/entrenar_modelo.py adultos-chaside-AAAA-MM-DD.csv --version 1.0`).
 4. Copia el `modelo.json` descargado a la raíz del repositorio (reemplaza al provisional), ejecuta `node ml/verificar_js.js` si lo entrenaste en local, y haz commit + push.

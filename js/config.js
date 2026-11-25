@@ -22,7 +22,7 @@ const ORIENTA_CONFIG = {
 
   // Criterios para que un adulto entre al modelo (sección "Módulo de machine learning").
   // Deben coincidir con los valores por defecto de ml/entrenar_modelo.py.
-  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 30, cicloMinimo: 3 },
+  entrenamiento: { satisfaccionMinima: 4, minimoPorArea: 15, cicloMinimo: 3 },
 
   // Modelo de ML desplegado (RNF06): para cambiarlo basta con reemplazar este archivo.
   modeloUrl: "modelo.json"

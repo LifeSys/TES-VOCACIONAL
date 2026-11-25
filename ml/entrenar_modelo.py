@@ -7,7 +7,7 @@ Entrenamiento del modelo de ML del sistema (sección "Módulo de machine learnin
   Casos que entran: universitarios de 3.er ciclo a más con satisfacción promedio >= 4;
                     profesionales con satisfacción >= 4 y que trabajan en su área; en ambos casos
                     test no sospechoso y no excluido en el panel.
-  Mínimo: 30 casos por área; un área con menos queda fuera del modelo (solo clave clásica).
+  Mínimo: 15 casos por área; un área con menos queda fuera del modelo (solo clave clásica).
   Modelos comparados: clave CHASIDE (línea base), regresión logística, Naive Bayes,
                       Random Forest, SVM, todos con ponderación de clases (clases balanceadas).
   Validación: cruzada ANIDADA. 5 pliegues externos estratificados miden el desempeño; dentro de
@@ -242,7 +242,7 @@ def main():
     ap.add_argument("csv", nargs="?", help="CSV de adultos exportado del panel")
     ap.add_argument("--sintetico", action="store_true", help="usar datos sintéticos (solo pruebas / demo)")
     ap.add_argument("--version", required=True, help='versión del modelo, p. ej. "1.0"')
-    ap.add_argument("--minimo", type=int, default=30, help="casos mínimos por área (defecto 30)")
+    ap.add_argument("--minimo", type=int, default=15, help="casos mínimos por área (defecto 15)")
     ap.add_argument("--satisfaccion", type=float, default=4.0, help="satisfacción promedio mínima (defecto 4)")
     ap.add_argument("--ciclo", type=int, default=3, help="ciclo mínimo de los universitarios (defecto 3)")
     ap.add_argument("--salida", default=os.path.join(RAIZ, "modelo.json"), help="ruta de modelo.json")
